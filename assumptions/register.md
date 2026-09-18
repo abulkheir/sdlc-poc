@@ -139,3 +139,22 @@ Depends must be revisited) · `retired` (no longer relevant).
 - **Depends:** US-001, US-002
 - **If wrong:** `/products` gains paging parameters and a wrapper object, the
   frontend gains paging controls, and every response typed from the array changes.
+
+### A-012 — A cart's line totals use the price as it is now, not as it was when added
+
+- **Status:** open
+- **Raised by:** SPEC-006 · 2026-09-19
+- **Owner:** po
+- **Because:** the contract requires `lineTotal` and `total` but never says how they
+  are computed, and BRD 0.1 §4 explicitly defers what a cart does when a price
+  changes. Left unstated, the two teams will each pick an answer in good faith and
+  the carts will disagree the first time a seller edits a price.
+- **Depends:** US-006, US-007, US-008
+- **If wrong:** a cart line has to remember the price it was added at, which means
+  storing it, deciding how long it holds, and telling the buyer when it has moved.
+  The contract's `CartItem` gains a field and the cart stops being derivable from
+  the catalogue.
+- **Note:** the proposed answer is "current price at read time" — a cart is a list
+  of intentions, not a quotation, and there is no purchase in this release for a
+  frozen price to protect. Stating it in the contract is a change to
+  `contract/openapi.yaml` and therefore needs both approvals.

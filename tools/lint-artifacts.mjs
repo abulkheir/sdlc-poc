@@ -175,10 +175,14 @@ if (existsSync(CONTRACT)) {
   }
 }
 
-// nothing points here — probably forgotten, occasionally a root
+// Disconnected from the chain in both directions. Being the newest artifact is not
+// a defect — the tip always has nothing downstream yet — so only warn when it also
+// came from nowhere.
 for (const [id, d] of byId) {
-  if (!referenced.has(id) && !['brd', 'epic', 'register'].includes(d.fm.type)) {
-    warn(d.file, `nothing references '${id}'`);
+  if (['brd', 'epic', 'register'].includes(d.fm.type)) continue;
+  const upstream = ['source', 'parent', 'derives_from'].some((f) => list(d.fm[f]).length > 0);
+  if (!referenced.has(id) && !upstream) {
+    warn(d.file, `'${id}' is connected to nothing: it derives from nothing and nothing references it`);
   }
 }
 
