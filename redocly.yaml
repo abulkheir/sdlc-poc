@@ -1,0 +1,22 @@
+# Validation rules for contract/openapi.yaml.
+#
+# Three of Redocly's recommended rules are switched off below, each with its reason.
+# They are turned off rather than tolerated on purpose: a gate that always reports
+# the same three warnings teaches people to stop reading it, and then a real finding
+# scrolls past unnoticed. Everything not listed here is on.
+
+extends:
+  - recommended
+
+rules:
+  # Not distributed. There is nobody to license it to.
+  info-license: off
+
+  # Flags placeholder hosts. Ours really is localhost — the mock and the API both
+  # run there, and there is no deployed environment by design.
+  no-server-example.com: off
+
+  # Requires every operation to declare a 4xx. GET /categories takes no parameters,
+  # needs no authentication and has no failure mode short of a 500. Inventing a 4xx
+  # to satisfy the rule would be a lie in the contract.
+  operation-4xx-response: off

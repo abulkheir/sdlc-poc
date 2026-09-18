@@ -145,6 +145,36 @@ for (const d of docs) {
   }
 }
 
+// ---- contract cross-check ------------------------------------------------
+// The contract is YAML, not markdown, so it carries its links as x- extensions
+// rather than front-matter. A regex is enough: we only need the ids, not the tree.
+const CONTRACT = 'contract/openapi.yaml';
+if (existsSync(CONTRACT)) {
+  const yaml = readFileSync(CONTRACT, 'utf8').replace(/\r\n/g, '\n');
+  const ids = (s) => s.trim().replace(/^\[|\]$/g, '').split(',').map((x) => x.trim()).filter(Boolean);
+  const covered = new Set();
+
+  for (const m of yaml.matchAll(/^\s*x-story:\s*(.+)$/gm)) {
+    for (const id of ids(m[1])) {
+      covered.add(id);
+      referenced.add(id);
+      if (!byId.has(id)) err(CONTRACT, `x-story '${id}' is not a work item`);
+    }
+  }
+
+  for (const m of yaml.matchAll(/^\s*x-assumptions:\s*(.+)$/gm)) {
+    for (const id of ids(m[1])) {
+      referenced.add(id);
+      if (!assumptionIds.has(id)) err(CONTRACT, `x-assumptions '${id}' is not in the register`);
+    }
+  }
+
+  // a story no operation claims is either frontend-only or an oversight
+  for (const [id, d] of byId) {
+    if (d.fm.type === 'story' && !covered.has(id)) warn(CONTRACT, `no operation carries x-story: ${id}`);
+  }
+}
+
 // nothing points here — probably forgotten, occasionally a root
 for (const [id, d] of byId) {
   if (!referenced.has(id) && !['brd', 'epic', 'register'].includes(d.fm.type)) {

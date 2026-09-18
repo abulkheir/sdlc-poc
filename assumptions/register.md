@@ -116,3 +116,26 @@ Depends must be revisited) · `retired` (no longer relevant).
 - **Depends:** US-001, US-002, US-010
 - **If wrong:** the filter becomes a many-to-many join and the product form changes
   from a select to a multi-select.
+
+### A-010 — Sessions are stateless bearer tokens and signing out is client-side
+
+- **Status:** open
+- **Raised by:** backend · 2026-09-19
+- **Owner:** po
+- **Because:** US-005 requires that signing out stops protected operations working,
+  but nothing states whether a session must be revocable server-side. A stateless
+  token cannot be revoked before it expires.
+- **Depends:** US-004, US-005
+- **If wrong:** the API gains a session store, a logout endpoint and revocation
+  checks on every request, and the contract gains an operation it does not have.
+
+### A-011 — The catalogue is returned unpaginated
+
+- **Status:** open
+- **Raised by:** frontend · 2026-09-19
+- **Owner:** po
+- **Because:** the seed catalogue holds roughly two dozen products and nothing in
+  BRD 0.1 mentions paging. Non-functional requirements arrive in slice 0.3.
+- **Depends:** US-001, US-002
+- **If wrong:** `/products` gains paging parameters and a wrapper object, the
+  frontend gains paging controls, and every response typed from the array changes.

@@ -1,0 +1,25 @@
+# Ownership and required review.
+#
+# Replace the placeholder handles below with real GitHub teams or usernames before
+# this does anything. It is inert until branch protection on `main` has "Require
+# review from Code Owners" switched on — without that, this file is documentation.
+#
+# IMPORTANT, and easy to get wrong: when a line lists several owners, GitHub is
+# satisfied by an approval from ANY ONE of them. CODEOWNERS on its own therefore
+# cannot express "the backend lead AND the PO must both approve". Only one rule
+# applies to a file — the last one that matches — so a second line for the same path
+# does not add a second requirement. Genuinely requiring both needs a check that
+# inspects who approved. See contract/README.md.
+
+# The contract belongs to both teams. Neither may change it alone.
+/contract/            @ORG/backend-leads @ORG/product-owners
+
+# The source of truth and the record of what we assumed in its absence.
+/backlog/             @ORG/product-owners
+/brd/                 @ORG/product-owners
+/assumptions/         @ORG/product-owners
+
+# The rules the process itself runs on.
+/tools/               @ORG/backend-leads @ORG/product-owners
+/docs/                @ORG/product-owners
+/.github/             @ORG/backend-leads @ORG/product-owners

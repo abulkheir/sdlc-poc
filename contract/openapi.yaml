@@ -1,0 +1,772 @@
+openapi: 3.1.1
+
+info:
+  title: Marketplace API
+  version: 0.1.0
+  description: |
+    The agreement between the frontend and backend teams.
+
+    This file is authoritative. The frontend develops against a mock server driven by
+    it and generates its types from it; the backend implements against it and has its
+    emitted Swagger compared to it on every push. Neither team may change it alone —
+    see `contract/README.md`.
+
+    Every operation carries `x-story`, naming the work item that asked for it, and
+    `x-assumptions` where its shape rests on a decision taken in the absence of a
+    requirement. Both are checked by `tools/lint-artifacts.mjs`.
+
+servers:
+  - url: http://localhost:3000
+    description: Local development and the Prism mock
+
+tags:
+  - name: auth
+    description: Registration and sign-in.
+  - name: catalogue
+    description: Public browsing. No authentication required.
+  - name: cart
+    description: A buyer's cart. Belongs to the account, not the browser.
+  - name: listings
+    description: A seller's own products. Never anyone else's.
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags: [auth]
+      operationId: register
+      summary: Create an account as a buyer or a seller
+      description: |
+        The role is chosen here and cannot be changed afterwards (A-004).
+      security: []
+      x-story: US-004
+      x-assumptions: [A-004, A-010]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: The account was created and the caller is signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '409':
+          description: That email address is already registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: EMAIL_ALREADY_REGISTERED
+                message: That email address is already registered.
+
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Sign in
+      description: |
+        A wrong email and a wrong password are deliberately indistinguishable: both
+        answer INVALID_CREDENTIALS, so the endpoint cannot be used to discover which
+        addresses are registered (US-005).
+      security: []
+      x-story: US-005
+      x-assumptions: [A-010]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: The email address or the password was wrong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: INVALID_CREDENTIALS
+                message: Those details did not match an account.
+
+  /auth/me:
+    get:
+      tags: [auth]
+      operationId: getCurrentUser
+      summary: Who the bearer token belongs to
+      description: |
+        The frontend calls this on load to restore the signed-in state and decide
+        which navigation to render. There is no logout endpoint: tokens are stateless
+        and signing out discards the token client-side (A-010).
+      x-story: US-005
+      x-assumptions: [A-010]
+      responses:
+        '200':
+          description: The signed-in user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
+  /categories:
+    get:
+      tags: [catalogue]
+      operationId: listCategories
+      summary: The categories a product can belong to
+      description: |
+        A fixed set. A seller chooses exactly one when listing (A-009).
+      security: []
+      x-story: US-002
+      x-assumptions: [A-009]
+      responses:
+        '200':
+          description: Every category.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+
+  /products:
+    get:
+      tags: [catalogue]
+      operationId: listProducts
+      summary: Browse, search and filter the catalogue
+      description: |
+        Visible to everyone, signed in or not. The q and category parameters narrow
+        the results together. The whole catalogue is returned unpaginated (A-011).
+      security: []
+      x-story: US-001
+      x-assumptions: [A-006, A-009, A-011]
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Case-insensitive substring match on the product name only (A-006).
+          schema:
+            type: string
+            maxLength: 100
+        - name: category
+          in: query
+          required: false
+          description: Slug of a category from /categories.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The matching products. An empty array is a valid answer.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductSummary'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+
+  /products/{productId}:
+    get:
+      tags: [catalogue]
+      operationId: getProduct
+      summary: One product in full
+      security: []
+      x-story: US-003
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: The product.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /cart:
+    get:
+      tags: [cart]
+      operationId: getCart
+      summary: The signed-in buyer's cart
+      description: |
+        Held against the account, so it survives signing out and follows the buyer to
+        another browser (US-008). A seller has no cart and is refused.
+      x-story: US-008
+      x-assumptions: [A-004]
+      responses:
+        '200':
+          description: The cart. A new buyer's cart is present and empty, never absent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /cart/items:
+    post:
+      tags: [cart]
+      operationId: addCartItem
+      summary: Put a product in the cart
+      description: |
+        Adding a product already in the cart increases its quantity rather than
+        creating a second line (US-006). The stock rule is enforced here, on the
+        server, whatever the interface allows (US-009). Adding to a cart does not
+        reserve stock (A-008).
+      x-story: [US-006, US-009]
+      x-assumptions: [A-004, A-008]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCartItemRequest'
+      responses:
+        '200':
+          description: The cart after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/InsufficientStock'
+
+  /cart/items/{productId}:
+    patch:
+      tags: [cart]
+      operationId: updateCartItem
+      summary: Change the quantity of a line
+      description: |
+        A quantity of zero removes the line rather than keeping it at zero (US-007).
+      x-story: [US-007, US-009]
+      x-assumptions: [A-008]
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCartItemRequest'
+      responses:
+        '200':
+          description: The cart after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/InsufficientStock'
+    delete:
+      tags: [cart]
+      operationId: removeCartItem
+      summary: Take a line out of the cart
+      x-story: US-007
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: The cart after the removal.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /seller/products:
+    get:
+      tags: [listings]
+      operationId: listMyProducts
+      summary: The signed-in seller's own listings
+      description: |
+        Returns the caller's listings and only the caller's (US-011).
+      x-story: US-011
+      x-assumptions: [A-004]
+      responses:
+        '200':
+          description: The caller's listings.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [listings]
+      operationId: createProduct
+      summary: List a product for sale
+      description: |
+        The listing is live in the catalogue immediately; there is no approval step
+        (A-005).
+      x-story: US-010
+      x-assumptions: [A-001, A-002, A-003, A-005, A-009]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: The listing was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /seller/products/{productId}:
+    patch:
+      tags: [listings]
+      operationId: updateProduct
+      summary: Change one of the caller's own listings
+      description: |
+        A listing belonging to another seller answers 404, never 403. Telling the
+        caller that it exists but is not theirs would leak the catalogue's ownership
+        map, which US-012 forbids.
+      x-story: [US-011, US-012]
+      x-assumptions: [A-001, A-002, A-003, A-009]
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+      responses:
+        '200':
+          description: The updated listing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFoundOrNotYours'
+    delete:
+      tags: [listings]
+      operationId: deleteProduct
+      summary: Withdraw one of the caller's own listings
+      description: |
+        Removed outright; there is no archive (A-007). Another seller's listing
+        answers 404 for the reason given on PATCH (US-012).
+      x-story: US-012
+      x-assumptions: [A-007]
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '204':
+          description: The listing is gone.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFoundOrNotYours'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ProductId:
+      name: productId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    ValidationFailed:
+      description: The request body or query was rejected.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: VALIDATION_FAILED
+            message: Some fields were not acceptable.
+            fieldErrors:
+              - field: price
+                message: Price must be greater than zero.
+    Unauthenticated:
+      description: No token, or a token that is not valid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: UNAUTHENTICATED
+            message: Sign in to continue.
+    Forbidden:
+      description: Signed in, but the wrong role for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: FORBIDDEN
+            message: Your account cannot do that.
+    NotFound:
+      description: No such thing.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: NOT_FOUND
+            message: Not found.
+    NotFoundOrNotYours:
+      description: |
+        Either no such listing, or it belongs to another seller. The two are
+        deliberately indistinguishable (US-012).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: NOT_FOUND
+            message: Not found.
+    InsufficientStock:
+      description: |
+        The seller does not hold that many. The available field is required so the
+        interface can say how many there are (US-009).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InsufficientStockError'
+          example:
+            code: INSUFFICIENT_STOCK
+            message: Only 5 of these are available.
+            available: 5
+
+  schemas:
+
+    Error:
+      type: object
+      required: [code, message]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          enum:
+            - VALIDATION_FAILED
+            - EMAIL_ALREADY_REGISTERED
+            - INVALID_CREDENTIALS
+            - UNAUTHENTICATED
+            - FORBIDDEN
+            - NOT_FOUND
+            - INSUFFICIENT_STOCK
+        message:
+          type: string
+          description: Safe to show to the person. Never contains internal detail.
+        fieldErrors:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    FieldError:
+      type: object
+      required: [field, message]
+      additionalProperties: false
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+
+    InsufficientStockError:
+      type: object
+      required: [code, message, available]
+      additionalProperties: false
+      description: |
+        Deliberately spelled out rather than composed from Error with allOf. Under
+        JSON Schema, allOf against a subschema that sets additionalProperties: false
+        rejects the sibling's own properties — so the composed version made the
+        available field invalid on the one error that must carry it.
+      properties:
+        code:
+          type: string
+          const: INSUFFICIENT_STOCK
+        message:
+          type: string
+        available:
+          type: integer
+          minimum: 0
+          description: How many the seller actually holds.
+
+    Role:
+      type: string
+      enum: [buyer, seller]
+      description: Fixed at registration and never changed (A-004).
+
+    Money:
+      type: number
+      format: double
+      minimum: 0.01
+      multipleOf: 0.01
+      description: |
+        Two decimal places, single implied currency. This rests on A-001, taken
+        because BRD 0.1 section 7 does not exist yet. If the pricing slice introduces
+        a currency with three decimal places, or more than one currency, this schema
+        and everything typed from it changes.
+
+    RegisterRequest:
+      type: object
+      required: [email, password, role]
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 10
+          maxLength: 128
+          description: At least ten characters. Stored hashed and never returned.
+        role:
+          $ref: '#/components/schemas/Role'
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      additionalProperties: false
+      properties:
+        token:
+          type: string
+          description: Bearer token for the Authorization header.
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      required: [id, email, role]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/Role'
+
+    Category:
+      type: object
+      required: [slug, name]
+      additionalProperties: false
+      properties:
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        name:
+          type: string
+
+    ProductSummary:
+      type: object
+      required: [id, name, price, category, inStock]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 120
+        price:
+          $ref: '#/components/schemas/Money'
+        category:
+          $ref: '#/components/schemas/Category'
+        inStock:
+          type: boolean
+          description: |
+            Whether any remain. The exact count is not published in the list, only on
+            the product itself.
+
+    Product:
+      type: object
+      required: [id, name, description, price, category, stock]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 2000
+        price:
+          $ref: '#/components/schemas/Money'
+        category:
+          $ref: '#/components/schemas/Category'
+        stock:
+          type: integer
+          minimum: 0
+          description: Held against the product, not against a variant (A-003).
+
+    CreateProductRequest:
+      type: object
+      required: [name, description, price, categorySlug, stock]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        price:
+          $ref: '#/components/schemas/Money'
+        categorySlug:
+          type: string
+        stock:
+          type: integer
+          minimum: 0
+
+    UpdateProductRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: Every field is optional; at least one must be present.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        price:
+          $ref: '#/components/schemas/Money'
+        categorySlug:
+          type: string
+        stock:
+          type: integer
+          minimum: 0
+
+    AddCartItemRequest:
+      type: object
+      required: [productId]
+      additionalProperties: false
+      properties:
+        productId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Added to whatever is already in the cart for this product.
+
+    UpdateCartItemRequest:
+      type: object
+      required: [quantity]
+      additionalProperties: false
+      properties:
+        quantity:
+          type: integer
+          minimum: 0
+          description: An absolute quantity, not a delta. Zero removes the line.
+
+    CartItem:
+      type: object
+      required: [product, quantity, lineTotal]
+      additionalProperties: false
+      properties:
+        product:
+          $ref: '#/components/schemas/ProductSummary'
+        quantity:
+          type: integer
+          minimum: 1
+        lineTotal:
+          $ref: '#/components/schemas/Money'
+
+    Cart:
+      type: object
+      required: [items, total]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        total:
+          $ref: '#/components/schemas/Money'
