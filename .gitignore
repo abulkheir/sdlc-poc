@@ -7,3 +7,10 @@ coverage/
 .env.*
 !.env.example
 .angular/
+
+# Team worktrees and the boundary files generated into them by
+# tools/setup-worktrees.sh. The canonical copies are committed under teams/.
+.worktrees/
+.claude/settings.local.json
+.claude/CLAUDE.md
+.claude/hooks/

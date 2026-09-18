@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./web/**)",
+      "Edit(./web/**)",
+      "Write(./web/**)",
+      "Glob(./web/**)",
+      "Grep(./web/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/no-cross-team.mjs\" web"
+          }
+        ]
+      }
+    ]
+  }
+}
