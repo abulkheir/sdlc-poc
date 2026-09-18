@@ -1,0 +1,42 @@
+name: Dual approval
+
+# The contract belongs to both teams, so neither may change it alone.
+#
+# CODEOWNERS cannot express that: when a line lists several owners, an approval from
+# any one of them satisfies it, and only the last matching rule applies to a file.
+# This workflow reads who actually approved and fails unless every required team is
+# represented. Make it a required status check on main, alongside CODEOWNERS.
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: dual-approval-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  dual-approval:
+    name: Both teams approved
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check who approved
+        env:
+          # The default GITHUB_TOKEN cannot read team membership. This needs a
+          # fine-grained PAT with read:org, stored as the ORG_READ_TOKEN secret.
+          # If it is absent the check fails closed rather than passing silently.
+          ORG_READ_TOKEN: ${{ secrets.ORG_READ_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node tools/check-dual-approval.mjs

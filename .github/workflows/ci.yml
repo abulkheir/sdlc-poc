@@ -1,0 +1,57 @@
+name: CI
+
+# The cheap gates. Both run on every push and every pull request, take seconds, and
+# cost nothing. The expensive semantic check — an agent reading the artifacts for
+# contradictions — is deliberately not here; it belongs on artifact pull requests and
+# a nightly schedule, not on every push.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  artifacts:
+    name: Artifact consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Front-matter, link resolution, unregistered assumptions, stories without
+      # acceptance criteria, derived artifacts whose source has moved, and the
+      # contract's x-story / x-assumptions references.
+      - name: Lint artifacts
+        run: node tools/lint-artifacts.mjs
+
+  contract:
+    name: Contract validity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Rules are configured in redocly.yaml, with a written reason for each one
+      # that is switched off. This must report zero warnings, not merely zero errors.
+      - name: Validate the OpenAPI contract
+        run: npx --yes @redocly/cli@latest lint contract/openapi.yaml
+
+# ---------------------------------------------------------------------------
+# Still to come: the drift job.
+#
+# Once api/ exists, a third job starts the NestJS app, dumps the Swagger document
+# that @nestjs/swagger emits from the decorators, and compares it against
+# contract/openapi.yaml. Strict: any difference at all fails, not only breaking
+# ones. The only way to make it pass is a pull request against the contract that
+# both approvers have signed off — which is the whole point. A team cannot turn the
+# build green by quietly changing its own side.
+# ---------------------------------------------------------------------------

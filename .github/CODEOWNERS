@@ -12,14 +12,14 @@
 # inspects who approved. See contract/README.md.
 
 # The contract belongs to both teams. Neither may change it alone.
-/contract/            @ORG/backend-leads @ORG/product-owners
+/contract/            @2p-governance-poc/backend-leads @2p-governance-poc/product-owners
 
 # The source of truth and the record of what we assumed in its absence.
-/backlog/             @ORG/product-owners
-/brd/                 @ORG/product-owners
-/assumptions/         @ORG/product-owners
+/backlog/             @2p-governance-poc/product-owners
+/brd/                 @2p-governance-poc/product-owners
+/assumptions/         @2p-governance-poc/product-owners
 
 # The rules the process itself runs on.
-/tools/               @ORG/backend-leads @ORG/product-owners
-/docs/                @ORG/product-owners
-/.github/             @ORG/backend-leads @ORG/product-owners
+/tools/               @2p-governance-poc/backend-leads @2p-governance-poc/product-owners
+/docs/                @2p-governance-poc/product-owners
+/.github/             @2p-governance-poc/backend-leads @2p-governance-poc/product-owners

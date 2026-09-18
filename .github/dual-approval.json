@@ -1,0 +1,8 @@
+{
+  "org": "2p-governance-poc",
+  "watch": ["contract/"],
+  "require": [
+    { "team": "backend-leads", "label": "the backend lead" },
+    { "team": "product-owners", "label": "the PO" }
+  ]
+}
