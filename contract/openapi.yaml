@@ -43,6 +43,7 @@ paths:
       security: []
       x-story: US-004
       x-assumptions: [A-004, A-010]
+      x-roles: [public]
       requestBody:
         required: true
         content:
@@ -63,7 +64,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/EmailAlreadyRegisteredError'
               example:
                 code: EMAIL_ALREADY_REGISTERED
                 message: That email address is already registered.
@@ -80,6 +81,7 @@ paths:
       security: []
       x-story: US-005
       x-assumptions: [A-010]
+      x-roles: [public]
       requestBody:
         required: true
         content:
@@ -98,7 +100,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/InvalidCredentialsError'
               example:
                 code: INVALID_CREDENTIALS
                 message: Those details did not match an account.
@@ -114,6 +116,7 @@ paths:
         and signing out discards the token client-side (A-010).
       x-story: US-005
       x-assumptions: [A-010]
+      x-roles: [buyer, seller]
       responses:
         '200':
           description: The signed-in user.
@@ -134,6 +137,7 @@ paths:
       security: []
       x-story: US-002
       x-assumptions: [A-009]
+      x-roles: [public]
       responses:
         '200':
           description: Every category.
@@ -155,6 +159,7 @@ paths:
       security: []
       x-story: US-001
       x-assumptions: [A-006, A-009, A-011]
+      x-roles: [public]
       parameters:
         - name: q
           in: query
@@ -188,6 +193,7 @@ paths:
       summary: One product in full
       security: []
       x-story: US-003
+      x-roles: [public]
       parameters:
         - $ref: '#/components/parameters/ProductId'
       responses:
@@ -210,6 +216,7 @@ paths:
         another browser (US-008). A seller has no cart and is refused.
       x-story: US-008
       x-assumptions: [A-004]
+      x-roles: [buyer]
       responses:
         '200':
           description: The cart. A new buyer's cart is present and empty, never absent.
@@ -234,6 +241,7 @@ paths:
         reserve stock (A-008).
       x-story: [US-006, US-009]
       x-assumptions: [A-004, A-008]
+      x-roles: [buyer]
       requestBody:
         required: true
         content:
@@ -267,6 +275,7 @@ paths:
         A quantity of zero removes the line rather than keeping it at zero (US-007).
       x-story: [US-007, US-009]
       x-assumptions: [A-008]
+      x-roles: [buyer]
       parameters:
         - $ref: '#/components/parameters/ProductId'
       requestBody:
@@ -297,6 +306,7 @@ paths:
       operationId: removeCartItem
       summary: Take a line out of the cart
       x-story: US-007
+      x-roles: [buyer]
       parameters:
         - $ref: '#/components/parameters/ProductId'
       responses:
@@ -322,6 +332,7 @@ paths:
         Returns the caller's listings and only the caller's (US-011).
       x-story: US-011
       x-assumptions: [A-004]
+      x-roles: [seller]
       responses:
         '200':
           description: The caller's listings.
@@ -344,6 +355,7 @@ paths:
         (A-005).
       x-story: US-010
       x-assumptions: [A-001, A-002, A-003, A-005, A-009]
+      x-roles: [seller]
       requestBody:
         required: true
         content:
@@ -375,6 +387,7 @@ paths:
         map, which US-012 forbids.
       x-story: [US-011, US-012]
       x-assumptions: [A-001, A-002, A-003, A-009]
+      x-roles: [seller]
       parameters:
         - $ref: '#/components/parameters/ProductId'
       requestBody:
@@ -407,6 +420,7 @@ paths:
         answers 404 for the reason given on PATCH (US-012).
       x-story: US-012
       x-assumptions: [A-007]
+      x-roles: [seller]
       parameters:
         - $ref: '#/components/parameters/ProductId'
       responses:
@@ -438,11 +452,14 @@ components:
 
   responses:
     ValidationFailed:
-      description: The request body or query was rejected.
+      description: |
+        The request body or query was rejected. Always carries fieldErrors naming
+        at least one field: US-004 criterion 3 is written as a certainty, so the
+        schema has to make it one.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ValidationError'
           example:
             code: VALIDATION_FAILED
             message: Some fields were not acceptable.
@@ -532,6 +549,68 @@ components:
       properties:
         field:
           type: string
+          description: |
+            The bare property name, exactly as the request body spells it:
+            "password", never "/password" and never "body.password". The client
+            binds this to a form control, and the wrong convention fails silently -
+            the message surfaces above the form instead of under the field, and no
+            test, type or lint notices.
+          examples: [password]
+        message:
+          type: string
+
+    ValidationError:
+      type: object
+      required: [code, message, fieldErrors]
+      additionalProperties: false
+      description: |
+        Spelled out rather than composed from Error, for legibility and to match
+        InsufficientStockError.
+
+        The reason is NOT that composition would fail here. allOf against Error with
+        an added required: [fieldErrors] was checked with a validator and is valid,
+        because fieldErrors is already declared in Error. InsufficientStockError is
+        the different case: there the sibling added a property the base did not
+        declare, and additionalProperties: false rejected it. Do not re-derive the
+        wrong rule from the right warning.
+
+        fieldErrors cannot simply be made required on Error itself, because 401, 403
+        and 404 all reference Error and have no field to name.
+      properties:
+        code:
+          type: string
+          const: VALIDATION_FAILED
+        message:
+          type: string
+        fieldErrors:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    EmailAlreadyRegisteredError:
+      type: object
+      required: [code, message]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          const: EMAIL_ALREADY_REGISTERED
+        message:
+          type: string
+
+    InvalidCredentialsError:
+      type: object
+      required: [code, message]
+      additionalProperties: false
+      description: |
+        Returned for a wrong email and for a wrong password alike. The two must be
+        indistinguishable, or the endpoint becomes a way to discover which addresses
+        are registered (US-005).
+      properties:
+        code:
+          type: string
+          const: INVALID_CREDENTIALS
         message:
           type: string
 

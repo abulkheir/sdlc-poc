@@ -2,7 +2,7 @@
 id: SPEC-005
 type: spec
 title: Sign in and sign out
-status: draft
+status: ready
 owner: po
 source: US-005
 source_hash: f227e5b
@@ -15,8 +15,9 @@ updated: 2026-09-20
 
 # SPEC-005 — Sign in and sign out
 
-> Written against [[US-005]] and [[INT-005]]. **Status is `draft`**: concerns 1 and
-> 2 need the contract changed, and a contract change needs both approvals.
+> Written against [[US-005]] and [[INT-005]]. **Ready to plan against.** Concerns 1
+> and 2 were closed by a contract change both approvers signed off. Concerns 3 and 4
+> stand by design, and the register says what changes if either is answered.
 
 ## Summary
 
@@ -92,7 +93,7 @@ registered as A-015.
 
 ## Flagged concerns
 
-### 1 — The `401` code is pinned by example, not by schema. **Not blocking.**
+### 1 — The `401` code is pinned by example, not by schema. **Closed.**
 
 As with [[SPEC-004]] concern 3: the response uses `Error`, and only the example says
 a sign-in `401` carries `INVALID_CREDENTIALS`. The client chooses its message from
@@ -100,9 +101,9 @@ a sign-in `401` carries `INVALID_CREDENTIALS`. The client chooses its message fr
 
 **Decided:** `const: INVALID_CREDENTIALS`. Same contract pull request as SPEC-004's.
 
-*Both approvals.*
+*Closed by the contract pull request that added ValidationError, the two const error schemas and x-roles. Approved by the backend lead and the PO.*
 
-### 2 — Which role may call which operation is stated in prose only. **Not blocking.**
+### 2 — Which role may call which operation is stated in prose only. **Closed.**
 
 The public/protected split is unambiguous: `security: []` sits explicitly on the
 three catalogue operations and everything else inherits `bearerAuth`. The
@@ -122,7 +123,7 @@ roles fails; one mislabelled public fails too.
 Absence must not mean anything. That was the same silent failure as the link
 checker's missing hyphen, and it is not being repeated.
 
-*Rolls into the same contract pull request.*
+*Closed by the contract pull request that added ValidationError, the two const error schemas and x-roles. Approved by the backend lead and the PO.*
 
 ### 3 — Nothing limits repeated sign-in attempts. **Accepted, not resolved.**
 

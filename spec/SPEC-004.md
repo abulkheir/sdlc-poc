@@ -2,7 +2,7 @@
 id: SPEC-004
 type: spec
 title: Register as a buyer or a seller
-status: draft
+status: ready
 owner: po
 source: US-004
 source_hash: 5f7cbce
@@ -15,9 +15,9 @@ updated: 2026-09-20
 
 # SPEC-004 — Register as a buyer or a seller
 
-> Written against [[US-004]] and [[INT-004]]. **Status is `draft`**: concerns 1 and
-> 2 need the contract changed, and a contract change needs both approvals. Do not
-> plan against this until they have merged.
+> Written against [[US-004]] and [[INT-004]]. **Ready to plan against.** Concerns 1,
+> 2 and 3 were closed by a contract change the backend lead and the PO both
+> approved. Concern 4 stands by design.
 
 ## Summary
 
@@ -91,7 +91,7 @@ after the fact. [[INT-004]] rules all four out explicitly.
 Concerns 1, 2 and 3 were found by the frontend team auditing the contract from
 behind the wall, without sight of any server code.
 
-### 1 — `fieldErrors` is optional, so criterion 3 is not guaranteed. **Blocking.**
+### 1 — `fieldErrors` is optional, so criterion 3 is not guaranteed. **Closed.**
 
 `Error` requires only `code` and `message`. `fieldErrors` is optional and appears in
 an *example*, and an example is not a promise. US-004 criterion 3 is written as a
@@ -111,9 +111,9 @@ valid, because `fieldErrors` is already declared in `Error` — unlike
 declare and `additionalProperties: false` rejected it. Recorded here so nobody
 "tidies" this into an `allOf` and nobody repeats the other mistake.
 
-*Needs a contract pull request. Both approvals.*
+*Closed by the contract pull request that added ValidationError, the two const error schemas and x-roles. Approved by the backend lead and the PO.*
 
-### 2 — The shape of `FieldError.field` is never stated. **Blocking.**
+### 2 — The shape of `FieldError.field` is never stated. **Closed.**
 
 `field` is `type: string` with no pattern, no description, and one example: `price`.
 Nothing says whether it is a bare property name, a JSON Pointer, or a dotted path.
@@ -126,9 +126,9 @@ test, type or lint notices.
 **Decided:** the bare property name exactly as the request body spells it —
 `password`, not `/password` and not `body.password` — stated in the description.
 
-*Needs a contract pull request. Both approvals.*
+*Closed by the contract pull request that added ValidationError, the two const error schemas and x-roles. Approved by the backend lead and the PO.*
 
-### 3 — The `409` code is pinned by example, not by schema. **Not blocking.**
+### 3 — The `409` code is pinned by example, not by schema. **Closed.**
 
 The response uses `Error`, whose `code` is a seven-value enum; only the example and
 the prose say a `409` carries `EMAIL_ALREADY_REGISTERED`. The client branches on
@@ -138,7 +138,7 @@ status anyway, but chooses its message from `code`.
 `InsufficientStockError` already does. Applying the idiom in one place and not
 others is worse than not having it.
 
-*Rolls into the same contract pull request.*
+*Closed by the contract pull request that added ValidationError, the two const error schemas and x-roles. Approved by the backend lead and the PO.*
 
 ### 4 — The one-way role is a limitation, not an oversight. **Accepted.**
 

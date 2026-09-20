@@ -77,3 +77,26 @@ will pass this time, because the approvals now exist.
 Leaving the old red run in place is also a defensible choice while presenting: the
 sequence of runs — failed with no approvals, failed with one, passed with two — is a
 better demonstration of the gate working than a uniformly green list.
+
+## Who may call what
+
+Every operation carries `x-roles`, alongside `x-story` and `x-assumptions`. The
+values are `public`, `buyer` and `seller`, and `public` is written explicitly rather
+than left to absence.
+
+That last part is the whole point. If absence meant public, an operation that simply
+forgot its roles would read as one — and a protected endpoint quietly becoming
+public is not a defect anyone would notice by reading. The linter therefore requires
+the extension on every operation and cross-checks it against `security: []` in both
+directions:
+
+| Situation | Result |
+|---|---|
+| Operation declares no `x-roles` | fails |
+| `x-roles: [public]` without `security: []` | fails |
+| `security: []` with a named role | fails |
+| `public` mixed with a named role | fails |
+| A role outside the three | fails |
+
+All five are covered by a check that was run against a deliberately broken copy of
+this file before the rule was trusted.
