@@ -758,6 +758,13 @@ components:
           minimum: 1
         lineTotal:
           $ref: '#/components/schemas/Money'
+          description: |
+            The quantity multiplied by the product's price **as it is now** — not as
+            it was when the item was added. A cart is a list of intentions, not a
+            quotation, and there is no purchase in this release for a frozen price
+            to protect (A-012). If a seller changes a price, the cart reflects it on
+            the next read, and the buyer is not shown a figure the seller would not
+            honour.
 
     Cart:
       type: object
@@ -770,3 +777,7 @@ components:
             $ref: '#/components/schemas/CartItem'
         total:
           $ref: '#/components/schemas/Money'
+          description: |
+            The sum of every `lineTotal`, computed the same way and at the same
+            moment (A-012). The client never sums the lines itself: the server's
+            figure is the one shown, so the two can never disagree.

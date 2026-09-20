@@ -2,7 +2,7 @@
 id: SPEC-006
 type: spec
 title: Add a product to the cart
-status: draft
+status: ready
 owner: po
 source: US-006
 source_hash: ea7a0ad
@@ -10,15 +10,15 @@ derives_from: [INT-006]
 depends_on: [A-004, A-008, A-012]
 touches: [contract:/cart/items, contract:/cart]
 created: 2026-09-19
-updated: 2026-09-19
+updated: 2026-09-20
 ---
 
 # SPEC-006 — Add a product to the cart
 
-> Written against [[US-006]] and [[INT-006]]. **Status is `draft`, not `ready`**:
-> concern 1 below cannot be closed without a change to the contract, and a contract
-> change needs the backend lead and the PO to approve it. This spec should not be
-> planned against until that happens.
+> Written against [[US-006]] and [[INT-006]]. **Ready to plan against.** Concern 1
+> was a real hole in the contract, and it was closed by a contract change the
+> backend lead and the PO both approved. Concerns 2 and 3 are still open by design;
+> neither blocks this story.
 
 ## Summary
 
@@ -108,24 +108,21 @@ last returned.
 
 These are the points an analyst would escalate. They are listed first on purpose.
 
-### 1 — The contract does not say how `lineTotal` is computed. **Blocking.**
+### 1 — How `lineTotal` is computed. **Closed.**
 
-`Cart.items[].lineTotal` and `Cart.total` are required, and nothing states whether
-they use the price as it was when the product was added, or the price as it is now.
+`Cart.items[].lineTotal` and `Cart.total` were required by the contract while
+nothing stated whether they used the price as it was when the product was added or
+the price as it is now. The two answers diverge the moment a seller edits a price,
+and BRD 0.1 §4 defers exactly that — so the frontend and backend would each have
+picked one, both reasonably, and the carts would have disagreed.
 
-The two answers behave differently the moment a seller edits a price, and BRD 0.1
-§4 explicitly defers exactly this. The frontend and backend will each pick one, both
-reasonably, and the carts will disagree.
+**Decided:** the current price, at read time. A cart is a list of intentions, not a
+quotation, and there is no purchase in this release for a frozen price to protect.
 
-**Proposed:** compute from the current price at read time — the cart is a list of
-intentions, not a quotation, and there is no purchase in this release for a frozen
-price to protect. Registered as **A-012**.
-
-**This requires a change to `contract/openapi.yaml`** to state it in the `lineTotal`
-description. That is a contract change, so it needs the backend lead and the PO to
-approve. Until it merges, this spec stays `draft`.
-
-*Decision needed from: PO, with the backend lead.*
+Written into `contract/openapi.yaml` on `CartItem.lineTotal` and `Cart.total`, and
+recorded as **A-012**, now `confirmed`. The contract pull request carrying it was
+approved by the backend lead and the PO — neither could have merged it alone, and
+that pull request is the evidence.
 
 ### 2 — Stock can be over-promised. **Accepted, not resolved.**
 

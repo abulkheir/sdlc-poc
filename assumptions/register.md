@@ -142,7 +142,7 @@ Depends must be revisited) · `retired` (no longer relevant).
 
 ### A-012 — A cart's line totals use the price as it is now, not as it was when added
 
-- **Status:** open
+- **Status:** confirmed
 - **Raised by:** SPEC-006 · 2026-09-19
 - **Owner:** po
 - **Because:** the contract requires `lineTotal` and `total` but never says how they
@@ -154,7 +154,8 @@ Depends must be revisited) · `retired` (no longer relevant).
   storing it, deciding how long it holds, and telling the buyer when it has moved.
   The contract's `CartItem` gains a field and the cart stops being derivable from
   the catalogue.
-- **Note:** the proposed answer is "current price at read time" — a cart is a list
-  of intentions, not a quotation, and there is no purchase in this release for a
-  frozen price to protect. Stating it in the contract is a change to
-  `contract/openapi.yaml` and therefore needs both approvals.
+- **Decided:** current price at read time. A cart is a list of intentions, not a
+  quotation, and there is no purchase in this release for a frozen price to
+  protect. Recorded in `contract/openapi.yaml` on `CartItem.lineTotal` and
+  `Cart.total`, approved by the backend lead and the PO on the contract pull
+  request that carried this change. That pull request is the evidence.
