@@ -3,6 +3,6 @@
   "watch": ["contract/"],
   "require": [
     { "users": ["abyulkheir"], "label": "the backend lead" },
-    { "users": ["CHANGE-ME-product-owner"], "label": "the PO" }
+    { "users": ["abulkheirPO"], "label": "the PO" }
   ]
 }
