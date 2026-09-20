@@ -137,7 +137,7 @@ for (const d of docs) {
   }
 
   // inline [[links]] resolve too
-  for (const m of d.body.matchAll(/\[\[([A-Z]+-[\w.]+)\]\]/g)) {
+  for (const m of d.body.matchAll(/\[\[([A-Z]+-[\w.-]+)\]\]/g)) {
     referenced.add(m[1]);
     if (!byId.has(m[1]) && !assumptionIds.has(m[1])) {
       err(d.file, `[[${m[1]}]] does not resolve to any artifact`);
