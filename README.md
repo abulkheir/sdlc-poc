@@ -17,12 +17,13 @@ access to the other's code. The only channel between them is `contract/openapi.y
 ## The chain
 
 ```
-backlog/US-007.md          the work item — the single source of truth
-  └─ intent/US-007.intent.md   what is wanted, in the originator's words
-       └─ spec/SPEC-007.md      requirements and design, policy applied
-            └─ contract/openapi.yaml   the agreement between the two teams
-                 └─ plan/PLAN-007.md    how it will be built
-                      └─ the diff, its tests, and the PR with its review findings
+backlog/US-006.md              the work item - the single source of truth
+  |- intent/INT-006.md          what is wanted, in the originator's words
+     |- spec/SPEC-006.md        requirements and design, policy applied
+        |- contract/openapi.yaml            the agreement between the teams
+           |- plan/PLAN-006-WEB.md          how the frontend will build it
+           |- plan/PLAN-006-API.md          how the backend will build it
+              |- the diff, its tests, and the PR with its review findings
 ```
 
 Each stage reads the artifact the last one committed. The chain of commits is the

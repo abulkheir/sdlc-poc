@@ -159,3 +159,45 @@ Depends must be revisited) · `retired` (no longer relevant).
   protect. Recorded in `contract/openapi.yaml` on `CartItem.lineTotal` and
   `Cart.total`, approved by the backend lead and the PO on the contract pull
   request that carried this change. That pull request is the evidence.
+
+### A-013 — The client learns a session has ended only by being refused
+
+- **Status:** open
+- **Raised by:** frontend, during the contract audit for [[US-005]] · 2026-09-20
+- **Owner:** po
+- **Because:** `AuthResponse` carries a token and no expiry, while A-010 speaks of a
+  token that "cannot be revoked before it expires" — presupposing an expiry the
+  contract never describes. Note that `bearerFormat: JWT` in `securitySchemes` is an
+  OpenAPI **hint**, not a promise the token is a decodable JWT: reading `exp` on the
+  client would be an unregistered assumption dressed up as a fact.
+- **Depends:** US-005, US-006, US-008
+- **If wrong:** `AuthResponse` gains an expiry, the client gains a timer and a
+  warning before the session ends, and the contract probably gains a refresh
+  operation. Every screen that can be open for a long time changes behaviour.
+
+### A-014 — The password policy is length only
+
+- **Status:** open
+- **Raised by:** SPEC-004 · 2026-09-20
+- **Owner:** po
+- **Because:** BRD 0.1 says nothing about passwords at all. The contract states ten
+  characters minimum and 128 maximum and nothing else, and [[INT-004]] says the
+  originator has an opinion about length and none about anything else. The absence
+  of a complexity rule is therefore a decision, not an omission.
+- **Depends:** US-004
+- **If wrong:** registration gains a rule per requirement and a message for each,
+  and the field error shape has to carry more than one failure for the same field.
+
+### A-015 — Repeated failed sign-ins are not throttled and no account is locked
+
+- **Status:** open
+- **Raised by:** [[INT-005]] · 2026-09-20
+- **Owner:** po
+- **Because:** the originator named it as a real gap rather than overlooking it:
+  "that last one is a real gap and I would rather name it than pretend I have not
+  noticed". Nothing in BRD 0.1 covers it, and there is no purchase to protect yet.
+- **Depends:** US-005
+- **If wrong:** sign-in gains attempt counting, the account gains a locked state and
+  a way out of it, and the contract gains an error code it does not have. This is
+  the assumption most likely to be contradicted by a security review rather than by
+  a BRD slice.

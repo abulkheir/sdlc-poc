@@ -71,3 +71,26 @@ repository must resolve to an entry there, or the linter fails.
 When a BRD slice lands, the question is not "does this look right" but "which
 assumptions does this confirm, and which does it contradict" — and the register
 answers that in one pass.
+
+## Naming a plan
+
+A story is planned **once per team**, because the teams cannot see each other and
+each is accountable for its own side. So a plan's id carries the team:
+
+```
+plan/PLAN-006-API.md    id: PLAN-006-API    owner: backend-lead
+plan/PLAN-006-WEB.md    id: PLAN-006-WEB    owner: frontend-lead
+```
+
+Both carry `source: US-006` and the same `source_hash`, so if the story moves, both
+plans are marked stale together — which is correct: neither is still planning the
+thing that was asked for.
+
+A story only one team touches gets only one plan. There is no requirement that both
+exist.
+
+This convention was missing when the first plans were about to be written, and the
+`-API` / `-WEB` suffix exposed a defect in the link checker: its pattern for inline
+`[[…]]` links did not accept hyphens beyond the first, so `[[PLAN-006-API]]` was
+silently skipped rather than resolved. A broken link to any hyphenated id would have
+passed for as long as the rule existed. Fixed, and proved by a link that must fail.
