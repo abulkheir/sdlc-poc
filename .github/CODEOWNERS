@@ -1,35 +1,27 @@
 # Ownership and required review.
 #
-# Replace the placeholder handles below with real GitHub teams or usernames before
-# this does anything. It is inert until branch protection on `main` has "Require
-# review from Code Owners" switched on — without that, this file is documentation.
+# abulkheir is a personal account, so there are no teams — owners are named as
+# individual usernames. Every name here must be a repository COLLABORATOR with at
+# least write access, or GitHub ignores it silently and the rule does nothing.
+#
+# Inert until branch protection on `main` has "Require review from Code Owners"
+# switched on. Without that, this file is documentation.
 #
 # IMPORTANT, and easy to get wrong: when a line lists several owners, GitHub is
-# satisfied by an approval from ANY ONE of them. CODEOWNERS on its own therefore
-# cannot express "the backend lead AND the PO must both approve". Only one rule
-# applies to a file — the last one that matches — so a second line for the same path
-# does not add a second requirement. Genuinely requiring both needs a check that
-# inspects who approved. See contract/README.md.
+# satisfied by an approval from ANY ONE of them. Only one rule applies to a file —
+# the last one that matches — so a second line for the same path does not add a
+# second requirement. CODEOWNERS therefore cannot express "the backend lead AND the
+# PO must both approve". That is what .github/workflows/dual-approval.yml is for.
 
-# The contract belongs to both teams. Neither may change it alone.
-/contract/            @abulkheir/backend-leads @abulkheir/product-owners
+# The contract belongs to both reviewers. Neither may change it alone.
+/contract/            @CHANGE-ME-backend-lead @CHANGE-ME-product-owner
 
 # The source of truth and the record of what we assumed in its absence.
-/backlog/             @abulkheir/product-owners
-/brd/                 @abulkheir/product-owners
-/assumptions/         @abulkheir/product-owners
+/backlog/             @CHANGE-ME-product-owner
+/brd/                 @CHANGE-ME-product-owner
+/assumptions/         @CHANGE-ME-product-owner
 
 # The rules the process itself runs on.
-/tools/               @abulkheir/backend-leads @abulkheir/product-owners
-/docs/                @abulkheir/product-owners
-/.github/             @abulkheir/backend-leads @abulkheir/product-owners
-
-# ---------------------------------------------------------------------------
-# On a PERSONAL account rather than an organization, teams do not exist at all.
-# Replace every @abulkheir/<team> above with the individual usernames, e.g.
-#
-#   /contract/   @abulkheir @second-account
-#
-# and switch .github/dual-approval.json to its "users" form. The dual-approval
-# check supports both; CODEOWNERS on its own still cannot require BOTH of them.
-# ---------------------------------------------------------------------------
+/tools/               @CHANGE-ME-backend-lead @CHANGE-ME-product-owner
+/docs/                @CHANGE-ME-product-owner
+/.github/             @CHANGE-ME-backend-lead @CHANGE-ME-product-owner

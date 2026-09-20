@@ -1,9 +1,8 @@
 {
-  "_note": "Each entry in 'require' names EITHER a GitHub team (organization accounts only) OR a list of usernames. Teams do not exist on a personal account, so if abulkheir is a personal account, replace each { \"team\": ... } with { \"users\": [\"login-one\"], \"label\": ... } and drop the ORG_READ_TOKEN secret — the default token is then enough.",
-  "org": "abulkheir",
+  "_note": "abulkheir is a personal account, and GitHub teams exist only on organizations — so the approvers are named directly. No ORG_READ_TOKEN is needed for this form. If this ever moves to an organization, replace each { \"users\": [...] } with { \"team\": \"<slug>\" }, add an \"org\" key, and create the ORG_READ_TOKEN secret.",
   "watch": ["contract/"],
   "require": [
-    { "team": "backend-leads", "label": "the backend lead" },
-    { "team": "product-owners", "label": "the PO" }
+    { "users": ["CHANGE-ME-backend-lead"], "label": "the backend lead" },
+    { "users": ["CHANGE-ME-product-owner"], "label": "the PO" }
   ]
 }
