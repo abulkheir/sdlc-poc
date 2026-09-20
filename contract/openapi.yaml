@@ -571,6 +571,22 @@ components:
         a currency with three decimal places, or more than one currency, this schema
         and everything typed from it changes.
 
+    CartTotal:
+      type: number
+      format: double
+      minimum: 0
+      multipleOf: 0.01
+      description: |
+        The same shape as Money, but allowing zero, because an empty cart is
+        returned rather than withheld and the total of nothing is 0.
+
+        It is a separate schema rather than a Money reference with a looser
+        minimum because under JSON Schema the two constraints would both apply
+        and the stricter one would win — a sibling cannot relax what it refers
+        to. Relaxing Money itself is not available either: a price of zero is
+        forbidden by A-002, and Money is what every price in this contract is
+        typed as.
+
     RegisterRequest:
       type: object
       required: [email, password, role]
@@ -776,8 +792,11 @@ components:
           items:
             $ref: '#/components/schemas/CartItem'
         total:
-          $ref: '#/components/schemas/Money'
+          $ref: '#/components/schemas/CartTotal'
           description: |
             The sum of every `lineTotal`, computed the same way and at the same
             moment (A-012). The client never sums the lines itself: the server's
             figure is the one shown, so the two can never disagree.
+
+            Zero when the cart holds nothing, which is the whole reason this is a
+            CartTotal and not a Money.
