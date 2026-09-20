@@ -14,7 +14,7 @@
 # PO must both approve". That is what .github/workflows/dual-approval.yml is for.
 
 # The contract belongs to both reviewers. Neither may change it alone.
-/contract/            @CHANGE-ME-backend-lead @CHANGE-ME-product-owner
+/contract/            @abyulkheir @CHANGE-ME-product-owner
 
 # The source of truth and the record of what we assumed in its absence.
 /backlog/             @CHANGE-ME-product-owner
@@ -22,6 +22,6 @@
 /assumptions/         @CHANGE-ME-product-owner
 
 # The rules the process itself runs on.
-/tools/               @CHANGE-ME-backend-lead @CHANGE-ME-product-owner
+/tools/               @abyulkheir @CHANGE-ME-product-owner
 /docs/                @CHANGE-ME-product-owner
-/.github/             @CHANGE-ME-backend-lead @CHANGE-ME-product-owner
+/.github/             @abyulkheir @CHANGE-ME-product-owner
