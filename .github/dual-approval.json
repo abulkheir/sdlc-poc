@@ -1,5 +1,6 @@
 {
-  "org": "2p-governance-poc",
+  "_note": "Each entry in 'require' names EITHER a GitHub team (organization accounts only) OR a list of usernames. Teams do not exist on a personal account, so if abulkheir is a personal account, replace each { \"team\": ... } with { \"users\": [\"login-one\"], \"label\": ... } and drop the ORG_READ_TOKEN secret — the default token is then enough.",
+  "org": "abulkheir",
   "watch": ["contract/"],
   "require": [
     { "team": "backend-leads", "label": "the backend lead" },

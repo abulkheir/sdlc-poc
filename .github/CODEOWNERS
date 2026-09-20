@@ -12,14 +12,24 @@
 # inspects who approved. See contract/README.md.
 
 # The contract belongs to both teams. Neither may change it alone.
-/contract/            @2p-governance-poc/backend-leads @2p-governance-poc/product-owners
+/contract/            @abulkheir/backend-leads @abulkheir/product-owners
 
 # The source of truth and the record of what we assumed in its absence.
-/backlog/             @2p-governance-poc/product-owners
-/brd/                 @2p-governance-poc/product-owners
-/assumptions/         @2p-governance-poc/product-owners
+/backlog/             @abulkheir/product-owners
+/brd/                 @abulkheir/product-owners
+/assumptions/         @abulkheir/product-owners
 
 # The rules the process itself runs on.
-/tools/               @2p-governance-poc/backend-leads @2p-governance-poc/product-owners
-/docs/                @2p-governance-poc/product-owners
-/.github/             @2p-governance-poc/backend-leads @2p-governance-poc/product-owners
+/tools/               @abulkheir/backend-leads @abulkheir/product-owners
+/docs/                @abulkheir/product-owners
+/.github/             @abulkheir/backend-leads @abulkheir/product-owners
+
+# ---------------------------------------------------------------------------
+# On a PERSONAL account rather than an organization, teams do not exist at all.
+# Replace every @abulkheir/<team> above with the individual usernames, e.g.
+#
+#   /contract/   @abulkheir @second-account
+#
+# and switch .github/dual-approval.json to its "users" form. The dual-approval
+# check supports both; CODEOWNERS on its own still cannot require BOTH of them.
+# ---------------------------------------------------------------------------

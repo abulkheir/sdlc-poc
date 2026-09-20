@@ -34,9 +34,12 @@ jobs:
 
       - name: Check who approved
         env:
-          # The default GITHUB_TOKEN cannot read team membership. This needs a
-          # fine-grained PAT with read:org, stored as the ORG_READ_TOKEN secret.
-          # If it is absent the check fails closed rather than passing silently.
+          # Resolving a GitHub team needs read:org, which the default GITHUB_TOKEN
+          # does not have — so an org configuration needs a fine-grained PAT stored
+          # as the ORG_READ_TOKEN secret, and the check fails closed without it.
+          # A configuration that names approvers directly ("users" instead of
+          # "team") has no teams to resolve and runs on GITHUB_TOKEN alone.
           ORG_READ_TOKEN: ${{ secrets.ORG_READ_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: node tools/check-dual-approval.mjs

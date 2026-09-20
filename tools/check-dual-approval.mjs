@@ -19,7 +19,6 @@ import { readFileSync } from 'node:fs';
 const CONFIG = '.github/dual-approval.json';
 const api = 'https://api.github.com';
 
-const token = process.env.ORG_READ_TOKEN;
 const repo = process.env.GITHUB_REPOSITORY;
 const prNumber = process.env.PR_NUMBER;
 
@@ -29,16 +28,24 @@ function fail(message) {
 }
 
 if (!repo || !prNumber) fail('GITHUB_REPOSITORY and PR_NUMBER must both be set.');
-if (!token) {
-  fail(
-    'ORG_READ_TOKEN is not set. This check needs a token with read:org to resolve ' +
-      'team membership; the default GITHUB_TOKEN cannot. Failing closed rather than ' +
-      'waving the change through.'
-  );
-}
 
 const config = JSON.parse(readFileSync(CONFIG, 'utf8'));
 const { org, watch, require: required } = config;
+
+// Resolving a GitHub team needs read:org, which the default GITHUB_TOKEN does not
+// have. Naming people directly needs nothing extra — so only insist on the stronger
+// token when a team is actually involved. A personal account has no teams at all.
+const needsOrgRead = required.some((r) => r.team);
+const token = process.env.ORG_READ_TOKEN || (needsOrgRead ? '' : process.env.GITHUB_TOKEN);
+
+if (!token) {
+  fail(
+    'ORG_READ_TOKEN is not set, and this configuration resolves a GitHub team, which ' +
+      'needs a token with read:org — the default GITHUB_TOKEN cannot. Failing closed ' +
+      'rather than waving the change through. On a personal account, name the ' +
+      'approvers directly with "users" instead of "team" and no extra token is needed.'
+  );
+}
 
 async function gh(path, { allow404 = false } = {}) {
   const res = await fetch(`${api}${path}`, {
@@ -107,14 +114,28 @@ async function inTeam(login, team) {
 }
 
 const missing = [];
-for (const { team, label } of required) {
-  const who = [];
-  for (const login of approvers) if (await inTeam(login, team)) who.push(login);
+for (const req of required) {
+  const { team, users, label } = req;
+  let who = [];
+  let target;
 
-  if (who.length) console.log(`  ok    ${label} (@${org}/${team}) — approved by ${who.join(', ')}`);
+  if (team) {
+    // Organization account: resolve membership of a GitHub team.
+    target = `@${org}/${team}`;
+    for (const login of approvers) if (await inTeam(login, team)) who.push(login);
+  } else if (Array.isArray(users) && users.length) {
+    // Personal account: teams do not exist, so name the people directly.
+    const allowed = users.map((u) => u.toLowerCase());
+    target = users.map((u) => `@${u}`).join(' or ');
+    who = approvers.filter((login) => allowed.includes(login));
+  } else {
+    fail(`The entry "${label}" in ${CONFIG} names neither a team nor a list of users.`);
+  }
+
+  if (who.length) console.log(`  ok       ${label} (${target}) — approved by ${who.join(', ')}`);
   else {
-    console.log(`  MISSING  ${label} (@${org}/${team})`);
-    missing.push(`${label} (@${org}/${team})`);
+    console.log(`  MISSING  ${label} (${target})`);
+    missing.push(`${label} (${target})`);
   }
 }
 
