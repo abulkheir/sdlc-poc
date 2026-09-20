@@ -62,8 +62,14 @@ registered as A-015.
   stored token without asking.
 - Signing out clears the token and returns to the signed-out interface immediately,
   without waiting for a request.
-- **A `401` at any point means the session is over.** The client clears its token
-  and routes to sign-in. It does not inspect the token to anticipate this
+- **A `401` at any point means the session is over.** The client clears its token,
+  routes to sign-in, **and says that the session ended** rather than leaving the
+  person on a sign-in page with no explanation. [[INT-005]] asks for this outright
+  — "when it does run out the person is told rather than silently finding that a
+  button no longer works" — and this spec failed to carry it across until the
+  frontend noticed while planning. Since A-013 makes a refusal the only signal a
+  session has ended, an unexplained redirect is the only thing the person would
+  ever get. It does not inspect the token to anticipate this
   (A-013): `bearerFormat: JWT` in the contract is an OpenAPI *hint*, not a promise
   the token is a decodable JWT, and reading `exp` would be an assumption dressed up
   as a fact.
@@ -79,6 +85,7 @@ registered as A-015.
 
 | Situation | Status | `code` |
 |---|---|---|
+| A body missing a field, or malformed | 400 | `VALIDATION_FAILED` |
 | Wrong email, or wrong password | 401 | `INVALID_CREDENTIALS` |
 | Missing, malformed or expired token on `/auth/me` | 401 | `UNAUTHENTICATED` |
 
@@ -89,6 +96,7 @@ registered as A-015.
 | 1 — right details sign me in, interface reflects my role | Behaviour 2, plus the client rules |
 | 2 — a refusal that does not reveal which was wrong | Behaviour 1, both sides |
 | 3 — after signing out, protected things stop working | Behaviour 4 and the client rules |
+| — a session that ends mid-use is announced, not silent | Client rules, from [[INT-005]] |
 | 4 — a signed-out person asking for a role page is sent to sign in | Client rules, and the route guard |
 
 ## Flagged concerns
