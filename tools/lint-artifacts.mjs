@@ -169,6 +169,44 @@ if (existsSync(CONTRACT)) {
     }
   }
 
+  // ---- x-roles: every operation says who may call it ----------------------
+  // Absence must not mean anything. A protected operation that simply forgets
+  // x-roles would otherwise read as public, which is the same silent failure as
+  // the link checker's missing hyphen. So the extension is required everywhere,
+  // 'public' is written explicitly, and it must agree with `security: []` in both
+  // directions: a protected operation that forgets its roles fails, and one
+  // mislabelled public fails too.
+  const ROLES = new Set(['public', 'buyer', 'seller']);
+  const yLines = yaml.split('\n');
+  const ops = [];
+  let curPath = null, curOp = null, opBody = [], inPaths = false;
+  const flushOp = () => {
+    if (curOp) ops.push({ where: `${curOp.toUpperCase()} ${curPath}`, text: opBody.join('\n') });
+    curOp = null; opBody = [];
+  };
+  for (const line of yLines) {
+    if (/^paths:\s*$/.test(line)) { inPaths = true; continue; }
+    if (!inPaths) continue;
+    if (/^\S/.test(line)) { flushOp(); inPaths = false; continue; }
+    if (/^ {2}\/\S*:\s*$/.test(line)) { flushOp(); curPath = line.trim().slice(0, -1); continue; }
+    if (/^ {4}(get|post|put|patch|delete):\s*$/.test(line)) { flushOp(); curOp = line.trim().slice(0, -1); continue; }
+    if (curOp) opBody.push(line);
+  }
+  flushOp();
+
+  for (const { where, text } of ops) {
+    const m = text.match(/^\s*x-roles:\s*(.+)$/m);
+    const openSecurity = /^\s*security:\s*\[\s*\]\s*$/m.test(text);
+    if (!m) { err(CONTRACT, `${where} declares no x-roles`); continue; }
+    const declared = ids(m[1]);
+    const unknown = declared.filter((r) => !ROLES.has(r));
+    if (unknown.length) err(CONTRACT, `${where} names unknown role(s): ${unknown.join(', ')}`);
+    const isPublic = declared.includes('public');
+    if (isPublic && declared.length > 1) err(CONTRACT, `${where} mixes 'public' with a named role`);
+    if (isPublic && !openSecurity) err(CONTRACT, `${where} is x-roles: [public] but has no 'security: []'`);
+    if (!isPublic && openSecurity) err(CONTRACT, `${where} has 'security: []' but x-roles says ${declared.join(', ')}`);
+  }
+
   // a story no operation claims is either frontend-only or an oversight
   for (const [id, d] of byId) {
     if (d.fm.type === 'story' && !covered.has(id)) warn(CONTRACT, `no operation carries x-story: ${id}`);
