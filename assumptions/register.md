@@ -201,3 +201,24 @@ Depends must be revisited) · `retired` (no longer relevant).
   a way out of it, and the contract gains an error code it does not have. This is
   the assumption most likely to be contradicted by a security review rather than by
   a BRD slice.
+
+### A-019 — An email address is trimmed and lowercased, on the way in and on lookup
+
+- **Status:** confirmed
+- **Raised by:** backend, while planning PLAN-004-API · 2026-09-20
+- **Owner:** po
+- **Because:** nothing in the contract, the specs or the intents said whether an
+  address is matched case-sensitively. It does not bite where you would expect:
+  registration works either way. It bites at **sign-in**, because SQLite's unique
+  index is case-sensitive and Prisma cannot ask SQLite for a case-insensitive
+  comparison — so `Foo@example.test` and `foo@example.test` become two accounts, and
+  whoever registers with one and signs in with the other is refused by an endpoint
+  whose whole design is that it cannot explain why.
+- **Depends:** US-004, US-005
+- **Decided:** trim, then lowercase the whole address, on registration and on
+  lookup, and store the normalised form. Strictly, RFC 5321 makes the local part
+  case-sensitive and only the domain case-insensitive — but no provider anyone will
+  use treats it that way, and honouring the letter of the standard buys a support
+  queue full of people who cannot sign in. The address returned afterwards is the
+  stored form, so it may differ in case from what was typed, and the contract says
+  so rather than leaving the client to discover it.

@@ -95,6 +95,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
         '401':
           description: The email address or the password was wrong.
           content:
@@ -550,12 +552,19 @@ components:
         field:
           type: string
           description: |
-            The bare property name, exactly as the request body spells it:
-            "password", never "/password" and never "body.password". The client
-            binds this to a form control, and the wrong convention fails silently -
-            the message surfaces above the form instead of under the field, and no
-            test, type or lint notices.
-          examples: [password]
+            The bare name of whatever the caller supplied: a request body property
+            such as "password", or a query parameter such as "q". Never "/password",
+            never "body.password", never "query.q". The client binds this to a form
+            control, and the wrong convention fails silently - the message surfaces
+            above the form instead of under the field, and no test, type or lint
+            notices.
+
+            Query parameters are named explicitly because ValidationFailed is shared
+            by six operations, and one of them has no request body at all: a 400 from
+            GET /products comes from the q parameter exceeding its maximum length.
+            Since fieldErrors is required, that response must name something, and
+            without this sentence the convention had no answer for it.
+          examples: [password, q]
         message:
           type: string
 
@@ -675,6 +684,11 @@ components:
           type: string
           format: email
           maxLength: 254
+          description: |
+            Trimmed and lowercased before it is stored, and matched the same way at
+            sign-in, so an address differs from another only by its characters and
+            not by their case (A-019). The address returned afterwards is the stored
+            form, which may therefore differ in case from what was typed.
         password:
           type: string
           minLength: 10
@@ -691,6 +705,11 @@ components:
         email:
           type: string
           format: email
+          description: |
+            Trimmed and lowercased before the account is looked up, exactly as at
+            registration (A-019). Without that, an address registered as
+            "Foo@example.test" could never sign in as "foo@example.test", and the
+            refusal is deliberately unable to explain why.
         password:
           type: string
 
@@ -716,6 +735,7 @@ components:
         email:
           type: string
           format: email
+          description: The stored, normalised address — lowercased and trimmed (A-019).
         role:
           $ref: '#/components/schemas/Role'
 
