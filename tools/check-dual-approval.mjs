@@ -40,10 +40,14 @@ const token = process.env.ORG_READ_TOKEN || (needsOrgRead ? '' : process.env.GIT
 
 if (!token) {
   fail(
-    'ORG_READ_TOKEN is not set, and this configuration resolves a GitHub team, which ' +
-      'needs a token with read:org — the default GITHUB_TOKEN cannot. Failing closed ' +
-      'rather than waving the change through. On a personal account, name the ' +
-      'approvers directly with "users" instead of "team" and no extra token is needed.'
+    needsOrgRead
+      ? 'ORG_READ_TOKEN is not set, and this configuration resolves a GitHub team, ' +
+          'which needs a token with read:org — the default GITHUB_TOKEN cannot. On a ' +
+          'personal account, name the approvers directly with "users" instead of ' +
+          '"team" and no extra token is needed. Failing closed.'
+      : 'No token is available — neither GITHUB_TOKEN nor ORG_READ_TOKEN is set. ' +
+          'The workflow passes GITHUB_TOKEN, so this usually means the check is being ' +
+          'run outside it. Failing closed rather than waving the change through.'
   );
 }
 
