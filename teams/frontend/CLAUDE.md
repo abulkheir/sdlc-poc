@@ -56,3 +56,18 @@ there.
 [[US-008]] — plus the buyer-facing half of [[US-009]], remembering that the rule
 itself is the server's to enforce, not yours. Your job is to show the refusal well,
 not to prevent the request.
+
+## The standards
+
+Four skills are committed under `.claude/skills/` and apply to you. Read the one
+that fits before you write, rather than after review sends it back:
+
+- **contract-first** — anything crossing the boundary. Generate, never hand-write.
+- **secure-api** — endpoints, guards, refusals, credentials.
+- **register-assumptions** — you are deciding something nobody specified.
+- **tests-that-can-fail** — writing or reviewing a test.
+
+Three hooks enforce the rules that must hold without exception: the contract may
+only change on a `contract/*` branch, generated files are never hand-edited, and
+`git commit` is refused while the artifact linter fails. Each explains itself and
+names the way forward when it fires.

@@ -47,7 +47,7 @@ setup() {
   mkdir -p "${dir}/.claude/hooks"
   cp "teams/${team}/settings.json" "${dir}/.claude/settings.local.json"
   cp "teams/${team}/CLAUDE.md" "${dir}/.claude/CLAUDE.md"
-  cp "teams/hooks/no-cross-team.mjs" "${dir}/.claude/hooks/no-cross-team.mjs"
+  cp teams/hooks/*.mjs "${dir}/.claude/hooks/"
   echo "           boundary installed — ${other}/ is denied"
 }
 

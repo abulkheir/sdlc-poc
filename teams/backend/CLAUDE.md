@@ -62,3 +62,18 @@ npx @redocly/cli lint contract/openapi.yaml
 
 [[US-009]] [[US-010]] [[US-011]] [[US-012]], and the server side of [[US-004]]
 [[US-005]] [[US-006]] [[US-007]] [[US-008]].
+
+## The standards
+
+Four skills are committed under `.claude/skills/` and apply to you. Read the one
+that fits before you write, rather than after review sends it back:
+
+- **contract-first** — anything crossing the boundary. Generate, never hand-write.
+- **secure-api** — endpoints, guards, refusals, credentials.
+- **register-assumptions** — you are deciding something nobody specified.
+- **tests-that-can-fail** — writing or reviewing a test.
+
+Three hooks enforce the rules that must hold without exception: the contract may
+only change on a `contract/*` branch, generated files are never hand-edited, and
+`git commit` is refused while the artifact linter fails. Each explains itself and
+names the way forward when it fires.

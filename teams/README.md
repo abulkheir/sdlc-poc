@@ -45,3 +45,42 @@ So the boundaries are committed once, here, where both teams and any reviewer ca
 read them — and the copies inside each worktree are generated and git-ignored.
 A change to a boundary is then a normal pull request against `teams/`, visible to
 everyone, rather than something a team can quietly relax on its own branch.
+
+## The standards both teams work to
+
+Four skills, committed under `.claude/skills/`, so every worktree picks them up from
+git with nothing to copy. They are advisory: they make the right thing likely while
+the code is being written.
+
+| Skill | Triggers on | Says |
+|---|---|---|
+| `contract-first` | anything crossing the client/server boundary | generate, never hand-write; the contract is the only channel; how to change it |
+| `secure-api` | endpoints, guards, refusals, credentials | the security rules already decided, each with its reason |
+| `register-assumptions` | deciding something the requirements do not state | the two fields everyone skips, and why they are the point |
+| `tests-that-can-fail` | writing or reviewing a test | test the rule, not its shadow |
+
+Each was written from something that actually went wrong here, not from general
+advice. The reasons are in the skills.
+
+## The hooks behind them
+
+A skill makes a violation unlikely. A hook makes it fail. Three rules hold without
+exception, so each has one — installed into every worktree by
+`tools/setup-worktrees.sh`.
+
+| Hook | Refuses | Because |
+|---|---|---|
+| `no-cross-team.mjs` | a shell command reaching into the other team's folder | permissions cover the file tools and not `cat` |
+| `contract-branch-only.mjs` | changing the contract off a `contract/*` branch | mixed into a feature branch, the change never becomes its own pull request and the dual-approval gate never runs |
+| `no-generated-edits.mjs` | hand-editing generated types or the role map | a hand-edit is a second source of truth that agrees only until the next regeneration |
+| `lint-before-commit.mjs` | `git commit` while the artifact linter fails | CI would catch it twenty minutes and one context switch later, and cost a second commit that explains nothing |
+
+Every one of them explains itself when it fires and names the way forward, because a
+block with no route out just gets worked around.
+
+`lint-before-commit` has a deliberate escape hatch: `git commit --no-verify` still
+works and says so in the output. Recording a knowingly broken state is occasionally
+right, and it should be visible in the command rather than impossible.
+
+All four were proved against deliberate violations before being trusted — the same
+rule this project applies to every gate it adds.
