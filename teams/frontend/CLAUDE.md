@@ -71,3 +71,26 @@ Three hooks enforce the rules that must hold without exception: the contract may
 only change on a `contract/*` branch, generated files are never hand-edited, and
 `git commit` is refused while the artifact linter fails. Each explains itself and
 names the way forward when it fires.
+
+## Angular specifics
+
+Beyond the shared `code-standards` skill, these hold on this side:
+
+- **A component renders; it does not decide.** Anything with a rule in it belongs in
+  a service or a store the component reads. If a component is over about 150 lines,
+  something in it wants to be extracted.
+- **Signals for state, `computed()` for anything derived.** Never store a value you
+  could compute — two sources of the same truth drift.
+- **No logic in templates.** No arithmetic, no chained conditionals, no method calls
+  that do work. Prepare the value in the class and bind it.
+- **`inject()`, not constructor parameters.** `input()` and `output()`, not the
+  decorators. `OnPush` on every component, without exception — if a component needs
+  default change detection to update, it is holding mutable state it should not.
+- **Reactive forms only.** Template-driven forms put the shape of the data in the
+  markup, where it cannot be typed or tested.
+- **One component per file, one concern per component**, and the folder is named
+  after the feature rather than the layer: `features/auth/register-page/`.
+- **Unsubscribe or do not subscribe.** Prefer signals and `async`; where you must
+  subscribe, use `takeUntilDestroyed`.
+- **Never touch the DOM directly.** No `document.querySelector`, no `ElementRef`
+  mutation — if you need it, you are working against the framework.

@@ -16,6 +16,13 @@ a note — it has an owner, a status, and a list of what breaks if it turns out 
 When a BRD slice lands, the question is not "does this look right" but **"which of
 these does it confirm, and which does it contradict"**.
 
+Each one is pinned by a named test — see [the assumption test matrix](../docs/assumption-tests.md).
+A test cannot confirm an assumption; only the PO can. What it does is make the
+system fail loudly the moment one stops holding, so a contradiction arrives as a
+red build rather than as a surprise months later. Six of the tests assert that
+something is **absent** — no lockout, no approval step, no reservation — which is
+the kind of test nobody writes and the kind an assumption most needs.
+
 **Status values:** `open` (nobody has confirmed it) · `confirmed` (a BRD slice or the
 PO has agreed it) · `contradicted` (a later requirement disagrees — everything in
 Depends must be revisited) · `retired` (no longer relevant).

@@ -77,3 +77,29 @@ Three hooks enforce the rules that must hold without exception: the contract may
 only change on a `contract/*` branch, generated files are never hand-edited, and
 `git commit` is refused while the artifact linter fails. Each explains itself and
 names the way forward when it fires.
+
+## NestJS and Prisma specifics
+
+Beyond the shared `code-standards` skill, these hold on this side:
+
+- **A controller validates, delegates and maps.** No business rule lives in one. If
+  a controller method is more than a handful of lines, the rule belongs in a service.
+- **A service owns one capability** and does not reach into another service's
+  tables. Cross-capability work goes through that capability's service.
+- **Prisma is reached only from a repository or the service that owns the model.**
+  A `PrismaService` injected into a controller is a layering mistake that will be
+  copied.
+- **DTOs are the boundary.** Every request body is validated by a DTO with a global
+  `ValidationPipe` using `whitelist` and `forbidNonWhitelisted`, so an unknown field
+  is refused rather than ignored. Never trust a client-supplied id for ownership —
+  derive the owner from the token.
+- **Uniqueness is enforced by the database, not by a read.** Catch Prisma's `P2002`
+  rather than checking-then-inserting; the check-then-insert leaves a window where
+  two concurrent requests both see nothing and both write.
+- **Migrations are artifacts.** Generated with `prisma migrate dev`, committed, and
+  reviewed like code. CI runs `migrate deploy`, which applies committed files and
+  generates nothing — so a schema edited without a migration fails rather than
+  silently repairing itself.
+- **The emitted OpenAPI document is something you own**, not a by-product. Decorate
+  every endpoint and DTO so that what the tool emits matches the contract, because
+  the drift gate compares them exactly.
