@@ -20,8 +20,9 @@
  * Teams are named either by "users" (a personal account has no GitHub teams) or by
  * "team" (an organization). Only the latter needs a token with read:org.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { evaluate, protectedFiles } from './approval-rules.mjs';
+import { affectingFiles } from './impact.mjs';
 
 const CONFIG = '.github/dual-approval.json';
 const api = 'https://api.github.com';
@@ -37,7 +38,7 @@ function fail(message) {
 if (!repo || !prNumber) fail('GITHUB_REPOSITORY and PR_NUMBER must both be set.');
 
 const config = JSON.parse(readFileSync(CONFIG, 'utf8'));
-const { org, watch, teams } = config;
+const { org, watch, impact = [], teams } = config;
 if (!teams || typeof teams !== 'object') fail(`${CONFIG} has no "teams" object.`);
 
 // Resolving a GitHub team needs read:org, which the default GITHUB_TOKEN does not
@@ -84,18 +85,50 @@ async function paged(path) {
 }
 
 // --- does this pull request touch anything the rule protects? ---------------
+const pr = await gh(`/repos/${repo}/pulls/${prNumber}`);
 const files = await paged(`/repos/${repo}/pulls/${prNumber}/files`);
-const touched = protectedFiles(files.map((f) => f.filename), watch);
+const names = files.map((f) => f.filename);
 
-if (touched.length === 0) {
-  console.log(`No protected paths touched (watching: ${watch.join(', ')}). Nothing to enforce.`);
+const touched = protectedFiles(names, watch);
+
+// Some paths matter only when the change can reach the contract: an intent, a spec
+// or an assumption that nothing in the contract rests on needs no outside review.
+const candidates = protectedFiles(names, impact).filter((n) => !touched.includes(n));
+const diskFiles = new Map();
+for (const dir of ['spec', 'intent']) {
+  if (!existsSync(dir)) continue;
+  for (const f of readdirSync(dir)) {
+    if (f.endsWith('.md')) diskFiles.set(`${dir}/${f}`, readFileSync(`${dir}/${f}`, 'utf8'));
+  }
+}
+for (const extra of ['contract/openapi.yaml', 'assumptions/register.md']) {
+  if (existsSync(extra)) diskFiles.set(extra, readFileSync(extra, 'utf8'));
+}
+
+// The base version of a changed file, so a link cannot be cut and the file edited in
+// one go to slip past. Only the changed files are fetched.
+const baseTexts = new Map();
+for (const path of candidates) {
+  const res = await gh(`/repos/${repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}?ref=${pr.base.sha}`, { allow404: true });
+  baseTexts.set(path, res && res.content ? Buffer.from(res.content, 'base64').toString('utf8') : null);
+}
+const reach = affectingFiles({ changed: candidates, headFiles: diskFiles, baseOf: (p) => baseTexts.get(p) ?? null });
+
+for (const f of reach.unaffected) console.log(`  not affecting the contract: ${f.path}`);
+for (const f of reach.affecting) console.log(`  reaches the contract:       ${f.path} (${f.reason})`);
+if (reach.unaffected.length || reach.affecting.length) console.log('');
+
+const protectedChanged = [...touched, ...reach.affecting.map((f) => f.path)];
+
+if (protectedChanged.length === 0) {
+  console.log(`Nothing here needs outside approval (watching: ${watch.join(', ')}; and anything in ${impact.join(', ') || 'no other path'} that can reach the contract).`);
   process.exit(0);
 }
 
-console.log(`Protected paths touched:\n${touched.map((f) => `  ${f}`).join('\n')}\n`);
+const listing = protectedChanged.map((f) => `  ${f}`).join('\n');
+console.log(`Changes that need approval:\n${listing}\n`);
 
 // --- who wrote it, and who has approved, as of right now? -------------------
-const pr = await gh(`/repos/${repo}/pulls/${prNumber}`);
 const author = pr.user.login;
 
 // A reviewer may approve, then request changes, then approve again. Only their
@@ -147,10 +180,9 @@ for (const r of outcome.results) {
 
 if (!outcome.ok) {
   fail(
-    `This change touches a protected path and still needs approval from: ${missing.join(' and ')}.\n` +
-      '           Nobody may change the agreement, or the rules that guard it, for\n' +
-      '           their own side alone. The PR\n' +
-      "           author's own approval never counts towards this."
+    `This change still needs approval from: ${missing.join(' and ')}.\n` +
+      '           Nobody may change the agreement, or what it rests on, for their own\n' +
+      "           side alone. The PR author's own approval never counts towards this."
   );
 }
 

@@ -17,6 +17,7 @@
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { createHash } from 'node:crypto';
+import { parse } from './frontmatter.mjs';
 
 const SCAN = ['brd', 'backlog', 'intent', 'spec', 'plan', 'assumptions'];
 const TYPES = new Set(['brd', 'epic', 'story', 'intent', 'spec', 'plan', 'register']);
@@ -29,30 +30,6 @@ const errors = [];
 const warnings = [];
 const err = (f, m) => errors.push([f, m]);
 const warn = (f, m) => warnings.push([f, m]);
-
-/** Front-matter parser for the restricted subset this schema uses:
- *  `key: scalar` and `key: [a, b, c]`. No nesting, by design. */
-function parse(raw) {
-  const text = raw.replace(/\r\n/g, '\n');
-  if (!text.startsWith('---\n')) return { fm: null, body: text };
-  const end = text.indexOf('\n---', 3);
-  if (end === -1) return { fm: null, body: text };
-  const fm = {};
-  for (const line of text.slice(4, end).split('\n')) {
-    if (!line.trim() || line.trimStart().startsWith('#')) continue;
-    const i = line.indexOf(':');
-    if (i === -1) continue;
-    const k = line.slice(0, i).trim();
-    let v = line.slice(i + 1).trim();
-    if (v.startsWith('[') && v.endsWith(']')) {
-      v = v.slice(1, -1).split(',').map((s) => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
-    } else {
-      v = v.replace(/^['"]|['"]$/g, '');
-    }
-    fm[k] = v;
-  }
-  return { fm, body: text.slice(end + 4).replace(/^\n/, '') };
-}
 
 const digest = (s) => createHash('sha256').update(s.replace(/\r\n/g, '\n').trim()).digest('hex').slice(0, 7);
 const list = (v) => (Array.isArray(v) ? v : v ? [v] : []);

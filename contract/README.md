@@ -19,9 +19,25 @@ request touching this folder, and the team that wrote it never approves it: ever
 
 The same rule guards the places that hold the rule itself: `tools/`, `.github/` and
 `teams/`. Whoever can edit those can lift the protection before touching the
-contract, so they are held to it too. Stories, the BRD and the assumptions register
-are not: they belong to the PO, and the linter marks everything derived from them
-stale when they move.
+contract, so they are held to it too. Stories and the BRD are not: they belong to
+the PO, and the linter marks everything derived from them stale when they move.
+
+Intents, specs and assumptions are held to the rule **only when the change can reach
+the contract**, because an edit that cannot affect what the teams build against needs
+no outside review. "Can reach" is read from links the repository already records,
+not judged (`tools/impact.mjs`):
+
+| Changed file | Counts when |
+|---|---|
+| Spec | its `touches` names a `contract:` path |
+| Intent | a spec that touches the contract derives from it |
+| Assumption | a contract operation lists it in `x-assumptions`, or a spec that touches the contract, or an intent behind one, depends on it |
+
+The changed file's version on the base branch is checked as well, so removing the
+`touches` line while editing a spec does not slip past. Cutting a link anywhere else
+is itself a change to a file this rule guards. A file the rule does not understand is
+treated as mattering. Today every assumption in the register is linked to the
+contract, so any edit to an existing entry needs the cross-team approval.
 
 The author's own approval never counts. An author who is on none of the three teams
 is refused outright, because there is no way to know whose approval would be needed.

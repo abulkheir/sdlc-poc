@@ -33,7 +33,7 @@ jobs:
       # The approval rule is what stops one team changing the contract for its own
       # side. Its tests run here so a change to the rule cannot merge unproven.
       - name: Test the approval rule
-        run: node --test tools/approval-rules.test.mjs
+        run: node --test tools/approval-rules.test.mjs tools/impact.test.mjs
 
   contract:
     name: Contract validity
