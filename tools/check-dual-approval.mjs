@@ -1,20 +1,27 @@
 #!/usr/bin/env node
 /**
- * Requires an approval from every named team before a protected path may merge.
+ * Requires the right approvals before a protected path may merge: the author's own
+ * team never approves its own change, and every other team must.
+ *
+ *   frontend writes  ->  backend lead and PO approve
+ *   backend writes   ->  frontend lead and PO approve
+ *   po writes        ->  frontend lead and backend lead approve
  *
  * GitHub's CODEOWNERS cannot express this. When a line lists several owners, an
- * approval from any one of them satisfies the rule, and only the last matching rule
- * applies to a file — so a second line for the same path adds nothing. This check
- * closes that gap: it reads who actually approved, resolves each approver's team
- * membership, and fails unless every required team is represented.
+ * approval from any one of them satisfies the rule, only the last matching rule
+ * applies to a file, and nothing depends on who the author is. This check reads who
+ * actually approved, works out which team the author is on, and fails unless every
+ * other team is represented. The decision itself lives in approval-rules.mjs, where
+ * it is tested without GitHub.
  *
  * Configuration lives in .github/dual-approval.json so the rule is reviewable data
  * rather than buried logic.
  *
- * Needs a token with read:org — the default GITHUB_TOKEN cannot read team
- * membership. Store a fine-grained PAT as the ORG_READ_TOKEN secret.
+ * Teams are named either by "users" (a personal account has no GitHub teams) or by
+ * "team" (an organization). Only the latter needs a token with read:org.
  */
 import { readFileSync } from 'node:fs';
+import { evaluate } from './approval-rules.mjs';
 
 const CONFIG = '.github/dual-approval.json';
 const api = 'https://api.github.com';
@@ -30,12 +37,13 @@ function fail(message) {
 if (!repo || !prNumber) fail('GITHUB_REPOSITORY and PR_NUMBER must both be set.');
 
 const config = JSON.parse(readFileSync(CONFIG, 'utf8'));
-const { org, watch, require: required } = config;
+const { org, watch, teams } = config;
+if (!teams || typeof teams !== 'object') fail(`${CONFIG} has no "teams" object.`);
 
 // Resolving a GitHub team needs read:org, which the default GITHUB_TOKEN does not
 // have. Naming people directly needs nothing extra — so only insist on the stronger
-// token when a team is actually involved. A personal account has no teams at all.
-const needsOrgRead = required.some((r) => r.team);
+// token when a team is actually involved.
+const needsOrgRead = Object.values(teams).some((t) => t.team);
 const token = process.env.ORG_READ_TOKEN || (needsOrgRead ? '' : process.env.GITHUB_TOKEN);
 
 if (!token) {
@@ -43,7 +51,7 @@ if (!token) {
     needsOrgRead
       ? 'ORG_READ_TOKEN is not set, and this configuration resolves a GitHub team, ' +
           'which needs a token with read:org — the default GITHUB_TOKEN cannot. On a ' +
-          'personal account, name the approvers directly with "users" instead of ' +
+          'personal account, name the people directly with "users" instead of ' +
           '"team" and no extra token is needed. Failing closed.'
       : 'No token is available — neither GITHUB_TOKEN nor ORG_READ_TOKEN is set. ' +
           'The workflow passes GITHUB_TOKEN, so this usually means the check is being ' +
@@ -86,9 +94,9 @@ if (touched.length === 0) {
 
 console.log(`Protected paths touched:\n${touched.map((f) => `  ${f}`).join('\n')}\n`);
 
-// --- who has approved, as of right now? -------------------------------------
+// --- who wrote it, and who has approved, as of right now? -------------------
 const pr = await gh(`/repos/${repo}/pulls/${prNumber}`);
-const author = pr.user.login.toLowerCase();
+const author = pr.user.login;
 
 // A reviewer may approve, then request changes, then approve again. Only their
 // latest non-comment review counts.
@@ -99,55 +107,49 @@ for (const r of reviews) {
   latest.set(r.user.login.toLowerCase(), r.state);
 }
 
-const approvers = [...latest.entries()]
-  .filter(([login, state]) => state === 'APPROVED' && login !== author)
-  .map(([login]) => login);
+const approvers = [...latest.entries()].filter(([, state]) => state === 'APPROVED').map(([login]) => login);
 
-console.log(`Author: ${author}`);
+console.log(`Author: ${author.toLowerCase()}`);
 console.log(`Approvers: ${approvers.length ? approvers.join(', ') : '(none)'}\n`);
 
-// --- is each required team represented? -------------------------------------
-const membership = new Map();
-async function inTeam(login, team) {
-  const key = `${team}/${login}`;
-  if (!membership.has(key)) {
-    const m = await gh(`/orgs/${org}/teams/${team}/memberships/${login}`, { allow404: true });
-    membership.set(key, m !== null && m.state === 'active');
+// --- membership, for both ways of naming a team -----------------------------
+const orgMembership = new Map();
+async function isMember(login, name) {
+  const t = teams[name];
+  if (t.users) return t.users.some((u) => u.toLowerCase() === login.toLowerCase());
+  const key = `${name}/${login}`;
+  if (!orgMembership.has(key)) {
+    const m = await gh(`/orgs/${org}/teams/${t.team}/memberships/${login}`, { allow404: true });
+    orgMembership.set(key, m !== null && m.state === 'active');
   }
-  return membership.get(key);
+  return orgMembership.get(key);
 }
 
+// A team named by a GitHub team slug cannot be matched against the author by name.
+async function resolveAuthorTeam(login) {
+  for (const name of Object.keys(teams)) if (await isMember(login, name)) return name;
+  return null;
+}
+
+const outcome = await evaluate({ teams, author, approvers, isMember, resolveAuthorTeam });
+
+if (outcome.reason) fail(outcome.reason);
+
+console.log(`The author is on the ${outcome.authorTeam} team, so every other team must approve:`);
 const missing = [];
-for (const req of required) {
-  const { team, users, label } = req;
-  let who = [];
-  let target;
-
-  if (team) {
-    // Organization account: resolve membership of a GitHub team.
-    target = `@${org}/${team}`;
-    for (const login of approvers) if (await inTeam(login, team)) who.push(login);
-  } else if (Array.isArray(users) && users.length) {
-    // Personal account: teams do not exist, so name the people directly.
-    const allowed = users.map((u) => u.toLowerCase());
-    target = users.map((u) => `@${u}`).join(' or ');
-    who = approvers.filter((login) => allowed.includes(login));
-  } else {
-    fail(`The entry "${label}" in ${CONFIG} names neither a team nor a list of users.`);
-  }
-
-  if (who.length) console.log(`  ok       ${label} (${target}) — approved by ${who.join(', ')}`);
+for (const r of outcome.results) {
+  if (r.approvedBy.length) console.log(`  ok       ${r.label} — approved by ${r.approvedBy.join(', ')}`);
   else {
-    console.log(`  MISSING  ${label} (${target})`);
-    missing.push(`${label} (${target})`);
+    console.log(`  MISSING  ${r.label}`);
+    missing.push(r.label);
   }
 }
 
-if (missing.length) {
+if (!outcome.ok) {
   fail(
     `This change touches the contract and still needs approval from: ${missing.join(' and ')}.\n` +
-      '           Neither team may change the agreement alone. The PR author\'s own\n' +
-      '           approval never counts towards this.'
+      '           Nobody may change the agreement for their own side alone. The PR\n' +
+      "           author's own approval never counts towards this."
   );
 }
 

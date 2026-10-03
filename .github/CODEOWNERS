@@ -13,8 +13,10 @@
 # second requirement. CODEOWNERS therefore cannot express "the backend lead AND the
 # PO must both approve". That is what .github/workflows/dual-approval.yml is for.
 
-# The contract belongs to both reviewers. Neither may change it alone.
-/contract/            @abyulkheir @abulkheirPO
+# The contract belongs to all three. Who must approve a given change depends on who
+# wrote it, and CODEOWNERS cannot see that — see the note above and the Dual approval
+# check, which is the enforcement. This line only makes review requests automatic.
+/contract/            @abulkheir @abyulkheir @abulkheirPO
 
 # The source of truth and the record of what we assumed in its absence.
 /backlog/             @abulkheirPO

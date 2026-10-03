@@ -16,8 +16,9 @@ against it.
 ## The contract is the only channel
 
 `contract/openapi.yaml` is authoritative and jointly owned. You may not change it
-alone — a change needs approval from the backend lead **and** the PO, enforced by
-the `Dual approval` check.
+alone — a change you write needs approval from the backend lead **and** the PO,
+enforced by the `Dual approval` check. Open your pull requests from your own account:
+the check works out who wrote a change from the account that opened it.
 
 You go first. You discover what you need before the backend exists, and you write it
 into the contract as a schema. But writing it first does not make it yours.

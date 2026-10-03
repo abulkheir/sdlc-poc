@@ -1,8 +1,9 @@
 {
-  "_note": "abulkheir is a personal account, and GitHub teams exist only on organizations — so the approvers are named directly. No ORG_READ_TOKEN is needed for this form. If this ever moves to an organization, replace each { \"users\": [...] } with { \"team\": \"<slug>\" }, add an \"org\" key, and create the ORG_READ_TOKEN secret.",
+  "_note": "The author's own team never approves its own change; every other team must. So a frontend change needs the backend lead and the PO, a backend change needs the frontend lead and the PO, and a PO change needs both leads. An account must be listed under exactly one team, and an author listed under none is refused. These are personal accounts, so people are named directly with \"users\". If this ever moves to an organization, replace each \"users\" with \"team\": \"<slug>\", add an \"org\" key, and create the ORG_READ_TOKEN secret.",
   "watch": ["contract/"],
-  "require": [
-    { "users": ["abyulkheir"], "label": "the backend lead" },
-    { "users": ["abulkheirPO"], "label": "the PO" }
-  ]
+  "teams": {
+    "frontend": { "users": ["abulkheir"], "label": "the frontend lead" },
+    "backend": { "users": ["abyulkheir"], "label": "the backend lead" },
+    "po": { "users": ["abulkheirPO"], "label": "the PO" }
+  }
 }

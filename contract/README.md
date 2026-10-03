@@ -7,9 +7,25 @@ exactly the things two teams resolve differently in good faith.
 
 ## Who owns it
 
-**Both teams, jointly.** Neither may change it alone. A change is a pull request
-touching this folder, and `CODEOWNERS` requires approval from the backend lead and
-the PO before it can merge.
+**Both teams, jointly.** Neither may change it for its own side. A change is a pull
+request touching this folder, and the team that wrote it never approves it: every
+*other* team must.
+
+| Who opens the pull request | Who must approve |
+|---|---|
+| Frontend | the backend lead and the PO |
+| Backend | the frontend lead and the PO |
+| PO | the frontend lead and the backend lead |
+
+The author's own approval never counts. An author who is on none of the three teams
+is refused outright, because there is no way to know whose approval would be needed.
+This means each team must open its pull requests from its own account; one account
+used for everything would be treated as a single team. The accounts and the rule live
+in `.github/dual-approval.json`, and `tools/approval-rules.test.mjs` proves it.
+
+`CODEOWNERS` still lists the contract's reviewers, but it cannot express this rule:
+it is satisfied by any one listed owner and knows nothing about the author. The
+`Dual approval` check is what enforces it.
 
 ## How each side uses it
 

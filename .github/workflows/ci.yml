@@ -30,6 +30,11 @@ jobs:
       - name: Lint artifacts
         run: node tools/lint-artifacts.mjs
 
+      # The approval rule is what stops one team changing the contract for its own
+      # side. Its tests run here so a change to the rule cannot merge unproven.
+      - name: Test the approval rule
+        run: node --test tools/approval-rules.test.mjs
+
   contract:
     name: Contract validity
     runs-on: ubuntu-latest

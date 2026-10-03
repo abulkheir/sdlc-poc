@@ -19,8 +19,10 @@ first, because they discovered the need first. That does not make it theirs, and
 does not make it beyond question — but it does mean you implement against it rather
 than around it.
 
-Changing it needs approval from the backend lead **and** the PO, enforced by the
-`Dual approval` check.
+A change you write needs approval from the frontend lead **and** the PO, never from
+your own lead, enforced by the `Dual approval` check. Open your pull requests from
+your own account: the check works out who wrote a change from the account that
+opened it.
 
 ## Drift is strict
 

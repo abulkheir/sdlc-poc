@@ -37,7 +37,7 @@ audit trail: who asked for what, what was produced, and who approved it.
 | `backlog/` | Epics and user stories, shaped like Azure DevOps work items so the folder can be swapped for a live connection later. **Authoritative.** |
 | `intent/` | One intent per story, derived from the work item. A working copy, never the source of truth. |
 | `spec/` | Requirements and design, written against what is known at the time. |
-| `contract/` | `openapi.yaml` — the frontend/backend agreement. Neither team may change it alone. |
+| `contract/` | `openapi.yaml` — the frontend/backend agreement. Neither team may change it for its own side. |
 | `assumptions/` | Every decision taken in the absence of a requirement, numbered, owned, and linked to what depends on it. |
 | `docs/` | How the artifacts are structured and linked. |
 | `tools/` | The checks that keep the above from rotting. |
