@@ -90,3 +90,8 @@ export async function evaluate({ teams, author, approvers, isMember, resolveAuth
 
   return { ok: results.every((r) => r.approvedBy.length > 0), authorTeam, results };
 }
+
+/** The changed files that fall under a protected path. */
+export function protectedFiles(filenames, watch) {
+  return filenames.filter((name) => watch.some((p) => name.startsWith(p)));
+}

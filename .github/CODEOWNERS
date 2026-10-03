@@ -24,6 +24,7 @@
 /assumptions/         @abulkheirPO
 
 # The rules the process itself runs on.
-/tools/               @abyulkheir @abulkheirPO
+/tools/               @abulkheir @abyulkheir @abulkheirPO
+/teams/               @abulkheir @abyulkheir @abulkheirPO
 /docs/                @abulkheirPO
-/.github/             @abyulkheir @abulkheirPO
+/.github/             @abulkheir @abyulkheir @abulkheirPO

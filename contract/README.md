@@ -17,6 +17,12 @@ request touching this folder, and the team that wrote it never approves it: ever
 | Backend | the frontend lead and the PO |
 | PO | the frontend lead and the backend lead |
 
+The same rule guards the places that hold the rule itself: `tools/`, `.github/` and
+`teams/`. Whoever can edit those can lift the protection before touching the
+contract, so they are held to it too. Stories, the BRD and the assumptions register
+are not: they belong to the PO, and the linter marks everything derived from them
+stale when they move.
+
 The author's own approval never counts. An author who is on none of the three teams
 is refused outright, because there is no way to know whose approval would be needed.
 This means each team must open its pull requests from its own account; one account

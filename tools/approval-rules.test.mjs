@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { evaluate, validateTeams } from './approval-rules.mjs';
+import { evaluate, validateTeams, protectedFiles } from './approval-rules.mjs';
 
 // The real configuration, so a test fails if the file is edited into a different rule.
-const { teams } = JSON.parse(readFileSync('.github/dual-approval.json', 'utf8'));
+const { teams, watch } = JSON.parse(readFileSync('.github/dual-approval.json', 'utf8'));
 
 const FE = 'abulkheir';
 const BE = 'abyulkheir';
@@ -97,4 +97,21 @@ test('an author who sits in two GitHub teams cannot approve their own change', a
   });
   assert.equal(r.ok, false);
   assert.deepEqual(waiting(r), ['backend']);
+});
+
+test('the real configuration protects the contract and the files that hold the rule', () => {
+  for (const f of [
+    'contract/openapi.yaml',
+    'tools/approval-rules.mjs',
+    'tools/check-dual-approval.mjs',
+    '.github/dual-approval.json',
+    '.github/workflows/dual-approval.yml',
+    'teams/hooks/no-cross-team.mjs',
+  ]) {
+    assert.deepEqual(protectedFiles([f], watch), [f], `${f} should be protected`);
+  }
+});
+
+test('ordinary artifacts are not caught by the rule', () => {
+  assert.deepEqual(protectedFiles(['backlog/US-001.md', 'spec/SPEC-006.md', 'README.md'], watch), []);
 });

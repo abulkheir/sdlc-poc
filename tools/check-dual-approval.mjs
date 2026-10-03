@@ -21,7 +21,7 @@
  * "team" (an organization). Only the latter needs a token with read:org.
  */
 import { readFileSync } from 'node:fs';
-import { evaluate } from './approval-rules.mjs';
+import { evaluate, protectedFiles } from './approval-rules.mjs';
 
 const CONFIG = '.github/dual-approval.json';
 const api = 'https://api.github.com';
@@ -85,7 +85,7 @@ async function paged(path) {
 
 // --- does this pull request touch anything the rule protects? ---------------
 const files = await paged(`/repos/${repo}/pulls/${prNumber}/files`);
-const touched = files.map((f) => f.filename).filter((name) => watch.some((p) => name.startsWith(p)));
+const touched = protectedFiles(files.map((f) => f.filename), watch);
 
 if (touched.length === 0) {
   console.log(`No protected paths touched (watching: ${watch.join(', ')}). Nothing to enforce.`);
@@ -147,8 +147,9 @@ for (const r of outcome.results) {
 
 if (!outcome.ok) {
   fail(
-    `This change touches the contract and still needs approval from: ${missing.join(' and ')}.\n` +
-      '           Nobody may change the agreement for their own side alone. The PR\n' +
+    `This change touches a protected path and still needs approval from: ${missing.join(' and ')}.\n` +
+      '           Nobody may change the agreement, or the rules that guard it, for\n' +
+      '           their own side alone. The PR\n' +
       "           author's own approval never counts towards this."
   );
 }
