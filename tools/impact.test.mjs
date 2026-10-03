@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { contractGraph, changedAssumptions, reachesContract, affectingFiles } from './impact.mjs';
+import { contractGraph, changedAssumptions, statusChanges, reachesContract, affectingFiles } from './impact.mjs';
 
 // The real repository, so these fail if the links the rule reads are ever removed.
 const real = new Map();
@@ -17,7 +17,8 @@ const spec = (id, touches, extra = '') =>
 const intent = (id) =>
   `---\nid: ${id}\ntype: intent\ntitle: t\nstatus: draft\nowner: po\nsource: US-1\nsource_hash: x\ncreated: 2026-01-01\nupdated: 2026-01-01\n---\n\nbody\n`;
 const reg = (...blocks) => `---\nid: REG-001\ntype: register\ntitle: t\n---\n\n${blocks.join('\n')}\n`;
-const entry = (id, text = 'because') => `### ${id} — a thing\n\n- **Because:** ${text}\n`;
+const entry = (id, text = 'because', status = 'open') =>
+  `### ${id} — a thing\n\n- **Status:** ${status}\n- **Because:** ${text}\n`;
 
 test('the real graph reaches the specs, intents and assumptions the contract depends on', () => {
   assert.ok(graph.specs.has('SPEC-006'));
@@ -138,4 +139,50 @@ test('affectingFiles splits a change set and reports a reason for each hit', () 
   assert.deepEqual(affecting.map((f) => f.path), ['spec/SPEC-1.md']);
   assert.deepEqual(unaffected.map((f) => f.path), ['spec/SPEC-2.md']);
   assert.match(affecting[0].reason, /SPEC-1/);
+});
+
+// An assumption nothing links to, so only the status rule can catch a change to it.
+const unlinked = { specs: new Set(), intents: new Set(), assumptions: new Set() };
+const reach = (base, head) => reachesContract({ path: 'assumptions/register.md', baseText: base, headText: head, graph: unlinked });
+
+test('status: moving an existing assumption between statuses is caught even when nothing links to it', () => {
+  const r = reach(reg(entry('A-099')), reg(entry('A-099', 'because', 'confirmed')));
+  assert.match(r, /A-099 open -> confirmed/);
+});
+
+test('status: every real transition is caught', () => {
+  for (const to of ['confirmed', 'contradicted', 'retired']) {
+    assert.ok(reach(reg(entry('A-099')), reg(entry('A-099', 'because', to))), to);
+  }
+  assert.ok(reach(reg(entry('A-099', 'b', 'confirmed')), reg(entry('A-099', 'b', 'open'))));
+});
+
+test('status: editing the text without touching the status, on an unlinked assumption, is not caught', () => {
+  assert.equal(reach(reg(entry('A-099')), reg(entry('A-099', 'reworded'))), null);
+});
+
+test('status: a new assumption born open is not a status change', () => {
+  assert.deepEqual(statusChanges(reg(entry('A-001')), reg(entry('A-001'), entry('A-099'))), []);
+  assert.equal(reach(reg(entry('A-001')), reg(entry('A-001'), entry('A-099'))), null);
+});
+
+test('status: a new assumption born already decided is caught', () => {
+  const r = reach(reg(entry('A-001')), reg(entry('A-001'), entry('A-099', 'b', 'confirmed')));
+  assert.match(r, /A-099 \(new\) -> confirmed/);
+});
+
+test('status: removing an assumption is caught', () => {
+  assert.match(reach(reg(entry('A-099')), reg()), /A-099 open -> \(removed\)/);
+});
+
+test("status: a change to the register's own front-matter status is caught", () => {
+  const withStatus = (s) => ['---', 'id: REG-001', 'type: register', 'title: t', `status: ${s}`, '---', '', entry('A-099')].join(String.fromCharCode(10));
+  assert.match(reach(withStatus('approved'), withStatus('superseded')), /the register itself approved -> superseded/);
+  assert.equal(reach(withStatus('approved'), withStatus('approved')), null);
+});
+
+test('status: the real register has no pending status change against itself', () => {
+  const text = real.get('assumptions/register.md');
+  assert.deepEqual(statusChanges(text, text), []);
+  assert.equal(statusChanges(text, text.replace('- **Status:** open', '- **Status:** confirmed')).length, 1);
 });

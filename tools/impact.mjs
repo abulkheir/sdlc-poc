@@ -12,6 +12,11 @@
  * A change that cannot reach the contract does not need the other teams to look at
  * it. One that can gets the same approval rule as the contract itself.
  *
+ * One exception that does not depend on reach: a change to an assumption's STATUS.
+ * Moving an assumption between open, confirmed, contradicted and retired is a
+ * decision about what the teams may rely on, so it is never a typo fix, and it gets
+ * the rule whether or not anything links to that assumption yet.
+ *
  * Why the head graph is enough, and the base version is checked as well. Someone
  * could try to slip past by deleting the link in the same change, for example
  * removing `touches` from a spec while editing it. So the changed file's own base
@@ -63,6 +68,33 @@ export function registerEntries(text) {
   return entries;
 }
 
+const statusOf = (block) => block?.match(/^\s*-\s*\*\*Status:\*\*\s*(\S+)/m)?.[1] ?? null;
+
+/**
+ * Status changes between two versions of the register, as [{ id, from, to }].
+ *
+ * Counts: an existing entry whose status differs; an entry that disappears (its
+ * status goes with it); a new entry that is born in any status but `open`, because
+ * writing "confirmed" straight into a new entry is a status decision with no review;
+ * and a change to the register's own front-matter status.
+ */
+export function statusChanges(baseText, headText) {
+  const before = registerEntries(baseText);
+  const after = registerEntries(headText);
+  const out = [];
+  for (const id of new Set([...before.keys(), ...after.keys()])) {
+    const from = statusOf(before.get(id));
+    const to = statusOf(after.get(id));
+    if (from === to) continue;
+    if (from === null && to === 'open') continue; // a new, undecided assumption
+    out.push({ id, from: from ?? '(new)', to: to ?? '(removed)' });
+  }
+  const fmFrom = baseText ? parse(baseText).fm?.status : null;
+  const fmTo = headText ? parse(headText).fm?.status : null;
+  if (fmFrom && fmTo && fmFrom !== fmTo) out.push({ id: 'the register itself', from: fmFrom, to: fmTo });
+  return out;
+}
+
 /** Ids of assumptions added, removed or edited between two versions of the register. */
 export function changedAssumptions(baseText, headText) {
   const before = registerEntries(baseText);
@@ -87,6 +119,10 @@ export function reachesContract({ path, baseText, headText, graph }) {
   const fms = sides.map((t) => parse(t).fm);
 
   if (path === 'assumptions/register.md') {
+    const moves = statusChanges(baseText, headText);
+    if (moves.length) {
+      return `changes status: ${moves.map((m) => `${m.id} ${m.from} -> ${m.to}`).join(', ')}`;
+    }
     const hit = [...changedAssumptions(baseText, headText)].filter((id) => graph.assumptions.has(id));
     return hit.length ? `changes ${hit.join(', ')}, which the contract rests on` : null;
   }

@@ -39,6 +39,20 @@ is itself a change to a file this rule guards. A file the rule does not understa
 treated as mattering. Today every assumption in the register is linked to the
 contract, so any edit to an existing entry needs the cross-team approval.
 
+**A change to an assumption's status always gets the rule,** whether or not anything
+links to it yet. Moving an assumption between `open`, `confirmed`, `contradicted` and
+`retired` is a decision about what the teams may rely on. It counts when:
+
+- an existing entry's status differs;
+- an entry is removed, because its status goes with it;
+- a new entry is born in any status but `open`, since writing `confirmed` straight
+  into a new entry is a decision with no review;
+- the register's own front-matter status changes.
+
+A new entry born `open` is not a status change. Since the PO owns every assumption,
+a PO-written status change cannot be approved by the PO, so both team leads review
+it instead, which is the same rule as everywhere else.
+
 The author's own approval never counts. An author who is on none of the three teams
 is refused outright, because there is no way to know whose approval would be needed.
 This means each team must open its pull requests from its own account; one account
